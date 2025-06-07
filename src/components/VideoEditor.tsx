@@ -2,9 +2,11 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Play, Pause, RotateCcw, Download, Scissors, Volume2 } from 'lucide-react';
+import { Scissors, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { VideoPlayerControls } from './VideoPlayerControls';
+import { VideoTrimControls } from './VideoTrimControls';
+import { VideoVolumeControl } from './VideoVolumeControl';
 
 interface VideoEditorProps {
   videoBlob: Blob;
@@ -94,12 +96,6 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({
     setTrimEnd(Math.max(value[0], trimStart + 1));
   };
 
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const handleExport = async () => {
     try {
       // Determine file extension based on blob type
@@ -147,85 +143,30 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({
             />
           </div>
 
-          {/* Timeline Controls */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handlePlayPause}
-              >
-                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleReset}
-              >
-                <RotateCcw className="w-4 h-4" />
-              </Button>
-              <span className="text-sm font-mono">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
-            </div>
+          {/* Player Controls */}
+          <VideoPlayerControls
+            isPlaying={isPlaying}
+            currentTime={currentTime}
+            duration={duration}
+            onPlayPause={handlePlayPause}
+            onReset={handleReset}
+            onSeek={handleSeek}
+          />
 
-            {/* Timeline Slider */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Timeline</label>
-              <Slider
-                value={[duration > 0 ? (currentTime / duration) * 100 : 0]}
-                onValueChange={handleSeek}
-                max={100}
-                step={0.1}
-                className="w-full"
-              />
-            </div>
+          {/* Trim Controls */}
+          <VideoTrimControls
+            trimStart={trimStart}
+            trimEnd={trimEnd}
+            duration={duration}
+            onTrimStartChange={handleTrimStartChange}
+            onTrimEndChange={handleTrimEndChange}
+          />
 
-            {/* Trim Controls */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Trim Start</label>
-                <Slider
-                  value={[trimStart]}
-                  onValueChange={handleTrimStartChange}
-                  max={duration}
-                  step={0.1}
-                  className="w-full"
-                />
-                <span className="text-xs text-muted-foreground">
-                  {formatTime(trimStart)}
-                </span>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Trim End</label>
-                <Slider
-                  value={[trimEnd]}
-                  onValueChange={handleTrimEndChange}
-                  max={duration}
-                  step={0.1}
-                  className="w-full"
-                />
-                <span className="text-xs text-muted-foreground">
-                  {formatTime(trimEnd)}
-                </span>
-              </div>
-            </div>
-
-            {/* Volume Control */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Volume2 className="w-4 h-4" />
-                Volume ({volume}%)
-              </label>
-              <Slider
-                value={[volume]}
-                onValueChange={handleVolumeChange}
-                max={100}
-                step={1}
-                className="w-full"
-              />
-            </div>
-          </div>
+          {/* Volume Control */}
+          <VideoVolumeControl
+            volume={volume}
+            onVolumeChange={handleVolumeChange}
+          />
 
           {/* Export Controls */}
           <div className="flex gap-3 pt-4 border-t">
