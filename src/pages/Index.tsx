@@ -4,7 +4,9 @@ import { RecordingControls } from '../components/RecordingControls';
 import { RecordingSettings } from '../components/RecordingSettings';
 import { RecordingPreview } from '../components/RecordingPreview';
 import { RecordingManager } from '../components/RecordingManager';
+import { FullscreenRecordingInterface } from '../components/FullscreenRecordingInterface';
 import { useRecording } from '../hooks/useRecording';
+import { useFullscreenRecording } from '../hooks/useFullscreenRecording';
 import { RecordingOptions } from '../services/RecordingService';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,6 +23,7 @@ interface Recording {
 const Index = () => {
   const { toast } = useToast();
   const recording = useRecording();
+  const fullscreen = useFullscreenRecording();
   
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -52,6 +55,7 @@ const Index = () => {
         description: "Unable to start recording. Please check permissions.",
         variant: "destructive",
       });
+      fullscreen.exitFullscreenMode();
     }
   };
 
@@ -59,6 +63,7 @@ const Index = () => {
     try {
       const blob = await recording.stopRecording();
       setStream(null);
+      fullscreen.exitFullscreenMode();
       
       // Create new recording entry
       const newRecording: Recording = {
@@ -104,6 +109,28 @@ const Index = () => {
     });
   };
 
+  // Show fullscreen interface when in fullscreen mode
+  if (fullscreen.isFullscreenMode) {
+    return (
+      <FullscreenRecordingInterface
+        webcamStream={recording.webcamStream}
+        onStartRecording={handleStartRecording}
+        onStopRecording={handleStopRecording}
+        onPauseRecording={recording.pauseRecording}
+        onResumeRecording={recording.resumeRecording}
+        isRecording={recording.isRecording}
+        isPaused={recording.isPaused}
+        duration={recording.duration}
+        webcamOverlayPosition={webcamOverlayPosition}
+        webcamOverlaySize={webcamOverlaySize}
+        webcamOverlayShape={webcamOverlayShape}
+        showWebcamOverlay={showWebcamOverlay && recordingOptions.includeWebcam}
+        onToggleWebcamOverlay={() => setShowWebcamOverlay(!showWebcamOverlay)}
+        onExit={fullscreen.exitFullscreenMode}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto px-4 py-8">
@@ -138,7 +165,7 @@ const Index = () => {
               isRecording={recording.isRecording}
               isPaused={recording.isPaused}
               duration={recording.duration}
-              onStart={handleStartRecording}
+              onStart={fullscreen.enterFullscreenMode}
               onPause={recording.pauseRecording}
               onResume={recording.resumeRecording}
               onStop={handleStopRecording}
