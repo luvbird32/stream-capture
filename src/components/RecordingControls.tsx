@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Play, Camera, Mic, Pause, Square } from 'lucide-react';
+import { Play, Camera, Pause, Square } from 'lucide-react';
 
 interface RecordingControlsProps {
   isRecording: boolean;

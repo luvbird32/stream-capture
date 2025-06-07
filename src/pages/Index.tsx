@@ -1,9 +1,9 @@
+
 import React, { useState } from 'react';
 import { RecordingControls } from '../components/RecordingControls';
 import { RecordingSettings } from '../components/RecordingSettings';
 import { RecordingPreview } from '../components/RecordingPreview';
 import { RecordingManager } from '../components/RecordingManager';
-import { LiveStreamPanel } from '../components/LiveStreamPanel';
 import { useRecording } from '../hooks/useRecording';
 import { RecordingOptions } from '../services/RecordingService';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,6 @@ const Index = () => {
   
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [recordings, setRecordings] = useState<Recording[]>([]);
-  const [isStreaming, setIsStreaming] = useState(false);
   
   const [recordingOptions, setRecordingOptions] = useState<RecordingOptions>({
     includeAudio: true,
@@ -99,30 +98,16 @@ const Index = () => {
     });
   };
 
-  const handleStartStream = (streamKey: string, platform: string) => {
-    // In a real app, this would connect to RTMP endpoint
-    setIsStreaming(true);
-    console.log('Starting stream with key:', streamKey, 'platform:', platform);
-  };
-
-  const handleStopStream = () => {
-    setIsStreaming(false);
-    toast({
-      title: "Stream Ended",
-      description: "Live stream has been stopped.",
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-4">
-            LoomClone Studio
+            Screen Recorder
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Professional screen recording and live streaming platform for content creators
+            Professional screen recording with webcam for content creators
           </p>
         </div>
 
@@ -145,25 +130,16 @@ const Index = () => {
               onPause={recording.pauseRecording}
               onResume={recording.resumeRecording}
               onStop={handleStopRecording}
-              disabled={isStreaming}
             />
           </div>
 
-          {/* Settings and Management Sidebar */}
+          {/* Settings Sidebar */}
           <div className="space-y-6">
             {/* Recording Settings */}
             <RecordingSettings
               options={recordingOptions}
               onChange={setRecordingOptions}
-              disabled={recording.isRecording || isStreaming}
-            />
-
-            {/* Live Streaming */}
-            <LiveStreamPanel
-              isStreaming={isStreaming}
-              onStartStream={handleStartStream}
-              onStopStream={handleStopStream}
-              viewerCount={Math.floor(Math.random() * 100)}
+              disabled={recording.isRecording}
             />
           </div>
         </div>
