@@ -2,7 +2,6 @@
 import React from 'react';
 import { RecordingControls } from './RecordingControls';
 import { RecordingSettings } from './RecordingSettings';
-import { RecordingPreview } from './RecordingPreview';
 import { RecordingOptions } from '../services/RecordingService';
 
 interface CaptureModeProps {
@@ -33,18 +32,9 @@ export const CaptureMode: React.FC<CaptureModeProps> = ({
   onOptionsChange,
 }) => {
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       {/* Main Recording Area */}
-      <div className="xl:col-span-3 space-y-6">
-        {/* Preview */}
-        <div className="w-full">
-          <RecordingPreview
-            stream={stream}
-            isRecording={isRecording}
-            recordedBlob={recordedBlob}
-          />
-        </div>
-        
+      <div className="xl:col-span-2 space-y-6">
         {/* Controls */}
         <RecordingControls
           isRecording={isRecording}
