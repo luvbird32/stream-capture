@@ -179,7 +179,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-4">
@@ -216,21 +216,17 @@ const Index = () => {
 
         {/* Capture Mode */}
         {currentMode === 'capture' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
             {/* Main Recording Area */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="xl:col-span-3 space-y-6">
               {/* Preview */}
-              <RecordingPreview
-                stream={stream}
-                webcamStream={null}
-                isRecording={recording.isRecording}
-                recordedBlob={recording.recordedBlob}
-                showWebcamOverlay={false}
-                webcamOverlayPosition="bottom-right"
-                webcamOverlaySize="medium"
-                webcamOverlayShape="circle"
-                onToggleWebcamOverlay={() => {}}
-              />
+              <div className="w-full">
+                <RecordingPreview
+                  stream={stream}
+                  isRecording={recording.isRecording}
+                  recordedBlob={recording.recordedBlob}
+                />
+              </div>
               
               {/* Controls */}
               <RecordingControls
@@ -245,7 +241,7 @@ const Index = () => {
             </div>
 
             {/* Settings Sidebar */}
-            <div className="space-y-6">
+            <div className="xl:col-span-1 space-y-6">
               {/* Recording Settings */}
               <RecordingSettings
                 options={recordingOptions}
@@ -266,22 +262,26 @@ const Index = () => {
 
         {/* Projects Mode */}
         {currentMode === 'projects' && (
-          <ProjectManager
-            projects={projects}
-            onOpenEditor={handleOpenEditor}
-            onPlayProject={handlePlayProject}
-            onDeleteProject={handleDeleteProject}
-            onExportProject={handleExportProject}
-          />
+          <div className="max-w-6xl mx-auto">
+            <ProjectManager
+              projects={projects}
+              onOpenEditor={handleOpenEditor}
+              onPlayProject={handlePlayProject}
+              onDeleteProject={handleDeleteProject}
+              onExportProject={handleExportProject}
+            />
+          </div>
         )}
 
         {/* Editing Mode */}
         {currentMode === 'editing' && editingProject && (
-          <VideoEditor
-            videoBlob={editingProject.blob}
-            onExport={handleExportVideo}
-            onClose={handleCloseEditor}
-          />
+          <div className="max-w-6xl mx-auto">
+            <VideoEditor
+              videoBlob={editingProject.blob}
+              onExport={handleExportVideo}
+              onClose={handleCloseEditor}
+            />
+          </div>
         )}
       </div>
     </div>

@@ -4,14 +4,8 @@ import { Card } from '@/components/ui/card';
 
 interface RecordingPreviewProps {
   stream: MediaStream | null;
-  webcamStream: MediaStream | null;
   isRecording: boolean;
   recordedBlob: Blob | null;
-  showWebcamOverlay: boolean;
-  webcamOverlayPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  webcamOverlaySize: 'small' | 'medium' | 'large';
-  webcamOverlayShape: 'circle' | 'rounded';
-  onToggleWebcamOverlay: () => void;
 }
 
 export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
@@ -68,13 +62,13 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
 
   return (
     <Card className="p-4 bg-card/95 backdrop-blur-sm border-border/50">
-      <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
+      <div className="w-full bg-muted rounded-lg overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
         {showLivePreview && (
           <video
             ref={liveVideoRef}
             autoPlay
             muted
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain bg-black"
           />
         )}
 
@@ -82,7 +76,7 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
           <video
             ref={playbackVideoRef}
             controls
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain bg-black"
             onLoadedMetadata={() => console.log('Video metadata loaded')}
             onCanPlay={() => console.log('Video can play')}
             onError={(e) => console.error('Video error:', e)}
