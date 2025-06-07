@@ -1,9 +1,8 @@
-
 import { RecordingOptions } from './types';
 import { StreamComposer } from './streamComposer';
 import { MediaRecorderManager } from './mediaRecorderManager';
 
-export { RecordingOptions, RecordingState } from './types';
+export type { RecordingOptions, RecordingState } from './types';
 
 export class RecordingService {
   private stream: MediaStream | null = null;
