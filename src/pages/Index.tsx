@@ -3,28 +3,23 @@ import React, { useState } from 'react';
 import { RecordingControls } from '../components/RecordingControls';
 import { RecordingSettings } from '../components/RecordingSettings';
 import { RecordingPreview } from '../components/RecordingPreview';
-import { RecordingManager } from '../components/RecordingManager';
+import { ProjectManager, RecordingProject } from '../components/ProjectManager';
+import { VideoEditor } from '../components/VideoEditor';
 import { PopupWebcam } from '../components/PopupWebcam';
 import { useRecording } from '../hooks/useRecording';
 import { RecordingOptions } from '../services/RecordingService';
 import { useToast } from '@/hooks/use-toast';
 
-interface Recording {
-  id: string;
-  name: string;
-  duration: number;
-  size: number;
-  createdAt: Date;
-  blob: Blob;
-  thumbnail?: string;
-}
+type AppMode = 'capture' | 'projects' | 'editing';
 
 const Index = () => {
   const { toast } = useToast();
   const recording = useRecording();
   
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [projects, setProjects] = useState<RecordingProject[]>([]);
+  const [currentMode, setCurrentMode] = useState<AppMode>('capture');
+  const [editingProject, setEditingProject] = useState<RecordingProject | null>(null);
   
   // Simple webcam overlay UI state (not part of recording)
   const [showWebcamOverlay, setShowWebcamOverlay] = useState(true);
@@ -44,6 +39,7 @@ const Index = () => {
     try {
       const recordingStream = await recording.startRecording(recordingOptions);
       setStream(recordingStream);
+      setCurrentMode('capture');
       toast({
         title: "Recording Started",
         description: "Your screen recording has begun.",
@@ -62,48 +58,130 @@ const Index = () => {
       const blob = await recording.stopRecording();
       setStream(null);
       
-      // Create new recording entry
-      const newRecording: Recording = {
+      // Create new recording project
+      const newProject: RecordingProject = {
         id: Date.now().toString(),
         name: `Recording ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+        createdAt: new Date(),
         duration: recording.duration,
         size: blob.size,
-        createdAt: new Date(),
         blob,
+        status: 'captured',
       };
       
-      setRecordings(prev => [newRecording, ...prev]);
+      setProjects(prev => [newProject, ...prev]);
+      setCurrentMode('projects');
       
       toast({
-        title: "Recording Saved",
-        description: "Your recording has been saved successfully.",
+        title: "Recording Captured",
+        description: "Your recording has been saved. Ready for editing!",
       });
     } catch (error) {
       toast({
-        title: "Save Failed",
+        title: "Capture Failed",
         description: "Unable to save recording.",
         variant: "destructive",
       });
     }
   };
 
-  const handleShareRecording = (recordingToShare: Recording) => {
-    // In a real app, this would upload to a cloud service
-    const shareUrl = `https://your-app.com/watch/${recordingToShare.id}`;
-    navigator.clipboard.writeText(shareUrl);
+  const handleOpenEditor = (project: RecordingProject) => {
+    setEditingProject(project);
+    setCurrentMode('editing');
     
+    // Update project status
+    setProjects(prev => 
+      prev.map(p => 
+        p.id === project.id 
+          ? { ...p, status: 'editing' as const }
+          : p
+      )
+    );
+  };
+
+  const handleCloseEditor = () => {
+    setEditingProject(null);
+    setCurrentMode('projects');
+  };
+
+  const handleExportVideo = (editedBlob: Blob, filename: string) => {
+    if (!editingProject) return;
+    
+    // Update project with export info
+    setProjects(prev => 
+      prev.map(p => 
+        p.id === editingProject.id 
+          ? { 
+              ...p, 
+              status: 'exported' as const,
+              exportedBlob: editedBlob,
+              exportedFilename: filename
+            }
+          : p
+      )
+    );
+    
+    // Auto-download the exported video
+    const url = URL.createObjectURL(editedBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    setCurrentMode('projects');
+    setEditingProject(null);
+  };
+
+  const handlePlayProject = (project: RecordingProject) => {
+    // Create a temporary preview window
+    const url = URL.createObjectURL(project.blob);
+    const video = document.createElement('video');
+    video.src = url;
+    video.controls = true;
+    video.autoplay = true;
+    video.style.width = '100%';
+    video.style.height = '100%';
+    
+    const popup = window.open('', '_blank', 'width=800,height=600');
+    if (popup) {
+      popup.document.title = project.name;
+      popup.document.body.style.margin = '0';
+      popup.document.body.style.backgroundColor = '#000';
+      popup.document.body.appendChild(video);
+      
+      popup.addEventListener('beforeunload', () => {
+        URL.revokeObjectURL(url);
+      });
+    }
+  };
+
+  const handleDeleteProject = (id: string) => {
+    setProjects(prev => prev.filter(p => p.id !== id));
     toast({
-      title: "Share Link Copied",
-      description: "Recording share link copied to clipboard.",
+      title: "Project Deleted",
+      description: "Recording project has been removed.",
     });
   };
 
-  const handleDeleteRecording = (id: string) => {
-    setRecordings(prev => prev.filter(r => r.id !== id));
-    toast({
-      title: "Recording Deleted",
-      description: "Recording has been removed.",
-    });
+  const handleExportProject = (project: RecordingProject) => {
+    if (project.exportedBlob && project.exportedFilename) {
+      const url = URL.createObjectURL(project.exportedBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = project.exportedFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download Started",
+        description: "Your exported video is being downloaded.",
+      });
+    }
   };
 
   return (
@@ -112,75 +190,113 @@ const Index = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-4">
-            Screen Recorder
+            Screen Recorder Studio
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Professional screen recording with webcam overlay for content creators
+            Professional screen recording with full editing capabilities: Capture → Save → Edit → Export
           </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Recording Area */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Preview */}
-            <RecordingPreview
-              stream={stream}
-              webcamStream={recording.webcamStream}
-              isRecording={recording.isRecording}
-              recordedBlob={recording.recordedBlob}
-              showWebcamOverlay={showWebcamOverlay && recordingOptions.includeWebcam}
-              webcamOverlayPosition={webcamOverlayPosition}
-              webcamOverlaySize={webcamOverlaySize}
-              webcamOverlayShape={webcamOverlayShape}
-              onToggleWebcamOverlay={() => setShowWebcamOverlay(!showWebcamOverlay)}
-            />
-            
-            {/* Controls */}
-            <RecordingControls
-              isRecording={recording.isRecording}
-              isPaused={recording.isPaused}
-              duration={recording.duration}
-              onStart={handleStartRecording}
-              onPause={recording.pauseRecording}
-              onResume={recording.resumeRecording}
-              onStop={handleStopRecording}
-            />
-          </div>
-
-          {/* Settings Sidebar */}
-          <div className="space-y-6">
-            {/* Recording Settings */}
-            <RecordingSettings
-              options={recordingOptions}
-              onChange={setRecordingOptions}
-              disabled={recording.isRecording}
-              showWebcamOverlay={showWebcamOverlay}
-              webcamOverlayPosition={webcamOverlayPosition}
-              webcamOverlaySize={webcamOverlaySize}
-              webcamOverlayShape={webcamOverlayShape}
-              onToggleWebcamOverlay={setShowWebcamOverlay}
-              onWebcamOverlayPositionChange={setWebcamOverlayPosition}
-              onWebcamOverlaySizeChange={setWebcamOverlaySize}
-              onWebcamOverlayShapeChange={setWebcamOverlayShape}
-            />
-
-            {/* Popup Webcam */}
-            <PopupWebcam
-              webcamStream={recording.webcamStream}
-              isRecording={recording.isRecording}
-              onPopupStatusChange={() => {}} // Handle if needed
-            />
+          
+          {/* Mode Navigation */}
+          <div className="flex justify-center gap-4 mt-6">
+            <button
+              onClick={() => setCurrentMode('capture')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                currentMode === 'capture' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+              }`}
+            >
+              📹 Capture
+            </button>
+            <button
+              onClick={() => setCurrentMode('projects')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                currentMode === 'projects' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+              }`}
+            >
+              🎬 Projects ({projects.length})
+            </button>
           </div>
         </div>
 
-        {/* Recording Management */}
-        <div className="mt-8">
-          <RecordingManager
-            recordings={recordings}
-            onShare={handleShareRecording}
-            onDelete={handleDeleteRecording}
+        {/* Capture Mode */}
+        {currentMode === 'capture' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Recording Area */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Preview */}
+              <RecordingPreview
+                stream={stream}
+                webcamStream={recording.webcamStream}
+                isRecording={recording.isRecording}
+                recordedBlob={recording.recordedBlob}
+                showWebcamOverlay={showWebcamOverlay && recordingOptions.includeWebcam}
+                webcamOverlayPosition={webcamOverlayPosition}
+                webcamOverlaySize={webcamOverlaySize}
+                webcamOverlayShape={webcamOverlayShape}
+                onToggleWebcamOverlay={() => setShowWebcamOverlay(!showWebcamOverlay)}
+              />
+              
+              {/* Controls */}
+              <RecordingControls
+                isRecording={recording.isRecording}
+                isPaused={recording.isPaused}
+                duration={recording.duration}
+                onStart={handleStartRecording}
+                onPause={recording.pauseRecording}
+                onResume={recording.resumeRecording}
+                onStop={handleStopRecording}
+              />
+            </div>
+
+            {/* Settings Sidebar */}
+            <div className="space-y-6">
+              {/* Recording Settings */}
+              <RecordingSettings
+                options={recordingOptions}
+                onChange={setRecordingOptions}
+                disabled={recording.isRecording}
+                showWebcamOverlay={showWebcamOverlay}
+                webcamOverlayPosition={webcamOverlayPosition}
+                webcamOverlaySize={webcamOverlaySize}
+                webcamOverlayShape={webcamOverlayShape}
+                onToggleWebcamOverlay={setShowWebcamOverlay}
+                onWebcamOverlayPositionChange={setWebcamOverlayPosition}
+                onWebcamOverlaySizeChange={setWebcamOverlaySize}
+                onWebcamOverlayShapeChange={setWebcamOverlayShape}
+              />
+
+              {/* Popup Webcam */}
+              <PopupWebcam
+                webcamStream={recording.webcamStream}
+                isRecording={recording.isRecording}
+                onPopupStatusChange={() => {}} // Handle if needed
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Projects Mode */}
+        {currentMode === 'projects' && (
+          <ProjectManager
+            projects={projects}
+            onOpenEditor={handleOpenEditor}
+            onPlayProject={handlePlayProject}
+            onDeleteProject={handleDeleteProject}
+            onExportProject={handleExportProject}
           />
-        </div>
+        )}
+
+        {/* Editing Mode */}
+        {currentMode === 'editing' && editingProject && (
+          <VideoEditor
+            videoBlob={editingProject.blob}
+            onExport={handleExportVideo}
+            onClose={handleCloseEditor}
+          />
+        )}
       </div>
     </div>
   );
