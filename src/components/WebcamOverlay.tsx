@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Camera, CameraOff, Move } from 'lucide-react';
+import { Camera, CameraOff } from 'lucide-react';
 
 interface WebcamOverlayProps {
   webcamStream: MediaStream | null;
@@ -22,10 +22,8 @@ export const WebcamOverlay: React.FC<WebcamOverlayProps> = ({
   onToggleVisibility,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [customPosition, setCustomPosition] = useState<{ x: number; y: number } | null>(null);
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     if (videoRef.current && webcamStream) {
@@ -43,8 +41,6 @@ export const WebcamOverlay: React.FC<WebcamOverlayProps> = ({
   };
 
   const getPositionClasses = () => {
-    if (customPosition) return '';
-    
     switch (position) {
       case 'top-left': return 'top-4 left-4';
       case 'top-right': return 'top-4 right-4';
@@ -57,49 +53,6 @@ export const WebcamOverlay: React.FC<WebcamOverlayProps> = ({
   const getShapeClasses = () => {
     return shape === 'circle' ? 'rounded-full' : 'rounded-lg';
   };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (overlayRef.current) {
-      const rect = overlayRef.current.getBoundingClientRect();
-      setDragOffset({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
-      setIsDragging(true);
-    }
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (isDragging) {
-      const newX = e.clientX - dragOffset.x;
-      const newY = e.clientY - dragOffset.y;
-      
-      // Constrain to viewport
-      const maxX = window.innerWidth - (overlayRef.current?.offsetWidth || 0);
-      const maxY = window.innerHeight - (overlayRef.current?.offsetHeight || 0);
-      
-      setCustomPosition({
-        x: Math.max(0, Math.min(newX, maxX)),
-        y: Math.max(0, Math.min(newY, maxY)),
-      });
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, dragOffset]);
 
   if (!isVisible) {
     return (
@@ -116,21 +69,10 @@ export const WebcamOverlay: React.FC<WebcamOverlayProps> = ({
     );
   }
 
-  const style = customPosition 
-    ? { 
-        position: 'fixed' as const,
-        left: `${customPosition.x}px`,
-        top: `${customPosition.y}px`,
-        cursor: isDragging ? 'grabbing' : 'grab'
-      }
-    : { cursor: 'grab' };
-
   return (
     <div
-      ref={overlayRef}
-      className={`absolute ${customPosition ? '' : getPositionClasses()} z-20 ${getSizeClasses()}`}
-      style={style}
-      onMouseDown={handleMouseDown}
+      className={`absolute ${getPositionClasses()} z-20 ${getSizeClasses()}`}
+      style={isDragging ? { transform: `translate(${dragPosition.x}px, ${dragPosition.y}px)` } : {}}
     >
       <Card className={`${getShapeClasses()} overflow-hidden bg-card/95 backdrop-blur-sm border-2 border-primary/20 relative group`}>
         {webcamStream ? (
@@ -148,23 +90,15 @@ export const WebcamOverlay: React.FC<WebcamOverlayProps> = ({
         )}
         
         {/* Controls overlay */}
-        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleVisibility();
-            }}
+            onClick={onToggleVisibility}
             size="sm"
             variant="ghost"
             className="w-6 h-6 p-0 bg-background/80 hover:bg-background/90"
           >
             <CameraOff className="w-3 h-3" />
           </Button>
-        </div>
-
-        {/* Drag indicator */}
-        <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Move className="w-3 h-3 text-white/70" />
         </div>
 
         {/* Live indicator */}
