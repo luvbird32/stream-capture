@@ -59,9 +59,9 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
     }
   }, [recordedBlob, isRecording]);
 
-  // Determine what to show - fix the boolean logic
-  const showLivePreview = Boolean(isRecording && stream);
-  const showRecordedVideo = Boolean(!isRecording && recordedBlob);
+  // Determine what to show
+  const showLivePreview = isRecording && !!stream;
+  const showRecordedVideo = !isRecording && !!recordedBlob;
   const showPlaceholder = !showLivePreview && !showRecordedVideo;
 
   console.log('Render state:', { 
@@ -85,15 +85,16 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
               className="w-full h-full object-cover"
             />
             
-            {/* Webcam Overlay */}
-            <WebcamOverlay
-              webcamStream={webcamStream}
-              isVisible={showWebcamOverlay}
-              position={webcamOverlayPosition}
-              size={webcamOverlaySize}
-              shape={webcamOverlayShape}
-              onToggleVisibility={onToggleWebcamOverlay}
-            />
+            {webcamStream && (
+              <WebcamOverlay
+                webcamStream={webcamStream}
+                isVisible={showWebcamOverlay}
+                position={webcamOverlayPosition}
+                size={webcamOverlaySize}
+                shape={webcamOverlayShape}
+                onToggleVisibility={onToggleWebcamOverlay}
+              />
+            )}
           </>
         )}
 

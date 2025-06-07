@@ -27,7 +27,7 @@ export const useRecording = () => {
         ...prev, 
         isRecording: true, 
         isPaused: false,
-        recordedBlob: null, // Clear any previous recording
+        recordedBlob: null,
         webcamStream: webcamStream || null
       }));
       
@@ -73,7 +73,7 @@ export const useRecording = () => {
         isRecording: false,
         isPaused: false,
         recordedBlob: blob,
-        duration: recordingService.current.getDuration(), // Keep final duration
+        duration: recordingService.current.getDuration(),
         webcamStream: null
       }));
       
