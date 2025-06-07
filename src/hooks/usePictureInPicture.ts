@@ -13,19 +13,6 @@ export const usePictureInPicture = () => {
     }
 
     try {
-      // Get microphone access
-      let microphoneStream: MediaStream | null = null;
-      try {
-        microphoneStream = await navigator.mediaDevices.getUserMedia({ 
-          audio: true,
-          video: false 
-        });
-        console.log('Microphone access granted for PiP');
-      } catch (micError) {
-        console.warn('Could not access microphone for PiP:', micError);
-        // Continue without microphone
-      }
-
       // Create a video element for PiP
       const video = document.createElement('video');
       video.srcObject = webcamStream;
@@ -58,11 +45,6 @@ export const usePictureInPicture = () => {
         setIsPipActive(false);
         setPipWindow(null);
         pipVideoRef.current = null;
-        
-        // Stop microphone stream when PiP closes
-        if (microphoneStream) {
-          microphoneStream.getTracks().forEach(track => track.stop());
-        }
       });
 
       return true;
