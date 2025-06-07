@@ -62,7 +62,7 @@ export const RecordingSettings: React.FC<RecordingSettingsProps> = ({
 
           <div className="flex items-center justify-between">
             <Label htmlFor="include-webcam" className="text-sm font-medium">
-              Include Webcam
+              Include Webcam (Preview Only)
             </Label>
             <Switch
               id="include-webcam"

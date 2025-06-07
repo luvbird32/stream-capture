@@ -1,16 +1,15 @@
+
 import { RecordingOptions } from './types';
-import { StreamComposer } from './streamComposer';
 import { MediaRecorderManager } from './mediaRecorderManager';
 
 export type { RecordingOptions, RecordingState } from './types';
 
 export class RecordingService {
-  private stream: MediaStream | null = null;
+  private screenStream: MediaStream | null = null;
   private webcamStream: MediaStream | null = null;
   private startTime: number = 0;
   private pauseStartTime: number = 0;
   private totalPausedTime: number = 0;
-  private streamComposer = new StreamComposer();
   private mediaRecorderManager = new MediaRecorderManager();
 
   async startRecording(options: RecordingOptions): Promise<{ screenStream: MediaStream; webcamStream?: MediaStream }> {
@@ -25,10 +24,10 @@ export class RecordingService {
         audio: options.includeAudio
       });
 
-      this.stream = screenStream;
+      this.screenStream = screenStream;
       let webcamStream: MediaStream | undefined;
 
-      // Get webcam if requested
+      // Get webcam if requested (for preview overlay only)
       if (options.includeWebcam) {
         try {
           webcamStream = await navigator.mediaDevices.getUserMedia({
@@ -45,17 +44,11 @@ export class RecordingService {
         }
       }
 
-      // Always create composite stream if we have webcam and overlay is enabled
-      let finalStream = screenStream;
-      if (webcamStream && options.webcamOverlay?.show) {
-        finalStream = this.streamComposer.createCompositeStream(screenStream, webcamStream, options.webcamOverlay);
-      }
-
       this.startTime = Date.now();
       this.totalPausedTime = 0;
 
-      // Setup MediaRecorder with the final stream
-      const mediaRecorder = this.mediaRecorderManager.createRecorder(finalStream);
+      // Record only the screen stream (clean recording without overlay)
+      const mediaRecorder = this.mediaRecorderManager.createRecorder(screenStream);
       this.mediaRecorderManager.start();
       
       return { screenStream, webcamStream };
@@ -99,13 +92,10 @@ export class RecordingService {
   }
 
   private cleanup(): void {
-    // Clean up stream composer
-    this.streamComposer.cleanup();
-
     // Stop streams
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
-      this.stream = null;
+    if (this.screenStream) {
+      this.screenStream.getTracks().forEach(track => track.stop());
+      this.screenStream = null;
     }
     if (this.webcamStream) {
       this.webcamStream.getTracks().forEach(track => track.stop());

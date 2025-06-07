@@ -31,12 +31,13 @@ export const WebcamOverlaySettings: React.FC<WebcamOverlaySettingsProps> = ({
   return (
     <Card className="bg-card/95 backdrop-blur-sm border-border/50">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">Webcam Overlay</CardTitle>
+        <CardTitle className="text-lg font-semibold">Webcam Preview Overlay</CardTitle>
+        <p className="text-sm text-muted-foreground">Configure webcam display during recording (preview only)</p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <Label htmlFor="show-overlay" className="text-sm font-medium">
-            Show Webcam Overlay
+            Show Webcam in Preview
           </Label>
           <Switch
             id="show-overlay"

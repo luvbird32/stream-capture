@@ -25,7 +25,7 @@ const Index = () => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   
-  // Webcam overlay state
+  // Simple webcam overlay UI state (not part of recording)
   const [showWebcamOverlay, setShowWebcamOverlay] = useState(true);
   const [webcamOverlayPosition, setWebcamOverlayPosition] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
   const [webcamOverlaySize, setWebcamOverlaySize] = useState<'small' | 'medium' | 'large'>('medium');
@@ -36,26 +36,7 @@ const Index = () => {
     includeWebcam: true,
     quality: 'medium',
     frameRate: 30,
-    webcamOverlay: {
-      position: webcamOverlayPosition,
-      size: webcamOverlaySize,
-      shape: webcamOverlayShape,
-      show: showWebcamOverlay,
-    },
   });
-
-  // Update recording options when overlay settings change
-  React.useEffect(() => {
-    setRecordingOptions(prev => ({
-      ...prev,
-      webcamOverlay: {
-        position: webcamOverlayPosition,
-        size: webcamOverlaySize,
-        shape: webcamOverlayShape,
-        show: showWebcamOverlay,
-      },
-    }));
-  }, [showWebcamOverlay, webcamOverlayPosition, webcamOverlaySize, webcamOverlayShape]);
 
   const handleStartRecording = async () => {
     try {
