@@ -1,7 +1,6 @@
 
 import React, { useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
-import { WebcamOverlay } from './WebcamOverlay';
 
 interface RecordingPreviewProps {
   stream: MediaStream | null;
@@ -17,14 +16,8 @@ interface RecordingPreviewProps {
 
 export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
   stream,
-  webcamStream,
   isRecording,
   recordedBlob,
-  showWebcamOverlay,
-  webcamOverlayPosition,
-  webcamOverlaySize,
-  webcamOverlayShape,
-  onToggleWebcamOverlay,
 }) => {
   const liveVideoRef = useRef<HTMLVideoElement>(null);
   const playbackVideoRef = useRef<HTMLVideoElement>(null);
@@ -77,25 +70,12 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
     <Card className="p-4 bg-card/95 backdrop-blur-sm border-border/50">
       <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
         {showLivePreview && (
-          <>
-            <video
-              ref={liveVideoRef}
-              autoPlay
-              muted
-              className="w-full h-full object-cover"
-            />
-            
-            {webcamStream && (
-              <WebcamOverlay
-                webcamStream={webcamStream}
-                isVisible={showWebcamOverlay}
-                position={webcamOverlayPosition}
-                size={webcamOverlaySize}
-                shape={webcamOverlayShape}
-                onToggleVisibility={onToggleWebcamOverlay}
-              />
-            )}
-          </>
+          <video
+            ref={liveVideoRef}
+            autoPlay
+            muted
+            className="w-full h-full object-cover"
+          />
         )}
 
         {showRecordedVideo && (
@@ -122,7 +102,7 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
         {isRecording && (
           <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
             <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-            LIVE
+            RECORDING
           </div>
         )}
       </div>

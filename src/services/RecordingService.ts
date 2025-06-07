@@ -6,7 +6,6 @@ export type { RecordingOptions, RecordingState } from './types';
 
 export class RecordingService {
   private screenStream: MediaStream | null = null;
-  private webcamStream: MediaStream | null = null;
   private microphoneStream: MediaStream | null = null;
   private combinedStream: MediaStream | null = null;
   private startTime: number = 0;
@@ -14,7 +13,7 @@ export class RecordingService {
   private totalPausedTime: number = 0;
   private mediaRecorderManager = new MediaRecorderManager();
 
-  async startRecording(options: RecordingOptions): Promise<{ screenStream: MediaStream; webcamStream?: MediaStream }> {
+  async startRecording(options: RecordingOptions): Promise<{ screenStream: MediaStream }> {
     try {
       // Get screen capture
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -27,23 +26,6 @@ export class RecordingService {
       });
 
       this.screenStream = screenStream;
-      let webcamStream: MediaStream | undefined;
-
-      // Get webcam if requested (for preview overlay only)
-      if (options.includeWebcam) {
-        try {
-          webcamStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: { ideal: 640 },
-              height: { ideal: 480 }
-            },
-            audio: false // Audio handled separately
-          });
-          this.webcamStream = webcamStream;
-        } catch (webcamError) {
-          console.warn('Could not access webcam:', webcamError);
-        }
-      }
 
       // Get microphone if requested
       if (options.includeMicrophone) {
@@ -88,15 +70,11 @@ export class RecordingService {
       const mediaRecorder = this.mediaRecorderManager.createRecorder(recordingStream);
       this.mediaRecorderManager.start();
       
-      return { screenStream, webcamStream };
+      return { screenStream };
     } catch (error) {
       console.error('Error starting recording:', error);
       throw error;
     }
-  }
-
-  getWebcamStream(): MediaStream | null {
-    return this.webcamStream;
   }
 
   pauseRecording(): void {
@@ -133,10 +111,6 @@ export class RecordingService {
     if (this.screenStream) {
       this.screenStream.getTracks().forEach(track => track.stop());
       this.screenStream = null;
-    }
-    if (this.webcamStream) {
-      this.webcamStream.getTracks().forEach(track => track.stop());
-      this.webcamStream = null;
     }
     if (this.microphoneStream) {
       this.microphoneStream.getTracks().forEach(track => track.stop());

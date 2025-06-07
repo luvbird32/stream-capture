@@ -5,7 +5,6 @@ import { RecordingSettings } from '../components/RecordingSettings';
 import { RecordingPreview } from '../components/RecordingPreview';
 import { ProjectManager, RecordingProject } from '../components/ProjectManager';
 import { VideoEditor } from '../components/VideoEditor';
-import { PopupWebcam } from '../components/PopupWebcam';
 import { useRecording } from '../hooks/useRecording';
 import { RecordingOptions } from '../services/RecordingService';
 import { useToast } from '@/hooks/use-toast';
@@ -21,15 +20,9 @@ const Index = () => {
   const [currentMode, setCurrentMode] = useState<AppMode>('capture');
   const [editingProject, setEditingProject] = useState<RecordingProject | null>(null);
   
-  // Simple webcam overlay UI state (not part of recording)
-  const [showWebcamOverlay, setShowWebcamOverlay] = useState(true);
-  const [webcamOverlayPosition, setWebcamOverlayPosition] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
-  const [webcamOverlaySize, setWebcamOverlaySize] = useState<'small' | 'medium' | 'large'>('medium');
-  const [webcamOverlayShape, setWebcamOverlayShape] = useState<'circle' | 'rounded'>('circle');
-  
   const [recordingOptions, setRecordingOptions] = useState<RecordingOptions>({
     includeAudio: true,
-    includeWebcam: true,
+    includeWebcam: false,
     includeMicrophone: false,
     quality: 'medium',
     frameRate: 30,
@@ -229,14 +222,14 @@ const Index = () => {
               {/* Preview */}
               <RecordingPreview
                 stream={stream}
-                webcamStream={recording.webcamStream}
+                webcamStream={null}
                 isRecording={recording.isRecording}
                 recordedBlob={recording.recordedBlob}
-                showWebcamOverlay={showWebcamOverlay && recordingOptions.includeWebcam}
-                webcamOverlayPosition={webcamOverlayPosition}
-                webcamOverlaySize={webcamOverlaySize}
-                webcamOverlayShape={webcamOverlayShape}
-                onToggleWebcamOverlay={() => setShowWebcamOverlay(!showWebcamOverlay)}
+                showWebcamOverlay={false}
+                webcamOverlayPosition="bottom-right"
+                webcamOverlaySize="medium"
+                webcamOverlayShape="circle"
+                onToggleWebcamOverlay={() => {}}
               />
               
               {/* Controls */}
@@ -258,21 +251,14 @@ const Index = () => {
                 options={recordingOptions}
                 onChange={setRecordingOptions}
                 disabled={recording.isRecording}
-                showWebcamOverlay={showWebcamOverlay}
-                webcamOverlayPosition={webcamOverlayPosition}
-                webcamOverlaySize={webcamOverlaySize}
-                webcamOverlayShape={webcamOverlayShape}
-                onToggleWebcamOverlay={setShowWebcamOverlay}
-                onWebcamOverlayPositionChange={setWebcamOverlayPosition}
-                onWebcamOverlaySizeChange={setWebcamOverlaySize}
-                onWebcamOverlayShapeChange={setWebcamOverlayShape}
-              />
-
-              {/* Popup Webcam */}
-              <PopupWebcam
-                webcamStream={recording.webcamStream}
-                isRecording={recording.isRecording}
-                onPopupStatusChange={() => {}} // Handle if needed
+                showWebcamOverlay={false}
+                webcamOverlayPosition="bottom-right"
+                webcamOverlaySize="medium"
+                webcamOverlayShape="circle"
+                onToggleWebcamOverlay={() => {}}
+                onWebcamOverlayPositionChange={() => {}}
+                onWebcamOverlaySizeChange={() => {}}
+                onWebcamOverlayShapeChange={() => {}}
               />
             </div>
           </div>

@@ -2,17 +2,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { RecordingService, RecordingOptions, RecordingState } from '../services/RecordingService';
 
-interface ExtendedRecordingState extends RecordingState {
-  webcamStream: MediaStream | null;
-}
-
 export const useRecording = () => {
-  const [state, setState] = useState<ExtendedRecordingState>({
+  const [state, setState] = useState<RecordingState>({
     isRecording: false,
     isPaused: false,
     duration: 0,
     recordedBlob: null,
-    webcamStream: null,
   });
 
   const recordingService = useRef(new RecordingService());
@@ -21,14 +16,13 @@ export const useRecording = () => {
   const startRecording = useCallback(async (options: RecordingOptions): Promise<MediaStream> => {
     try {
       console.log('Starting recording with options:', options);
-      const { screenStream, webcamStream } = await recordingService.current.startRecording(options);
+      const { screenStream } = await recordingService.current.startRecording(options);
       
       setState(prev => ({ 
         ...prev, 
         isRecording: true, 
         isPaused: false,
         recordedBlob: null,
-        webcamStream: webcamStream || null
       }));
       
       // Start duration timer
@@ -80,7 +74,6 @@ export const useRecording = () => {
         isPaused: false,
         recordedBlob: blob,
         duration: recordingService.current.getDuration(),
-        webcamStream: null
       }));
       
       console.log('Recording stopped successfully, blob size:', blob.size);
@@ -93,7 +86,6 @@ export const useRecording = () => {
         ...prev,
         isRecording: false,
         isPaused: false,
-        webcamStream: null
       }));
       
       // Clear interval on error too
@@ -120,5 +112,6 @@ export const useRecording = () => {
     pauseRecording,
     resumeRecording,
     stopRecording,
+    webcamStream: null,
   };
 };
