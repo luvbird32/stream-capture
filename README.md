@@ -1,73 +1,234 @@
-# Welcome to your Lovable project
+# Stream Capture Vision 🎥
 
-## Project info
+A powerful Chrome extension for screen recording and video editing built with React, TypeScript, and modern web technologies.
 
-**URL**: https://lovable.dev/projects/0f545414-c052-4044-b555-00b5764a9a3a
+## 🌟 Features
 
-## How can I edit this code?
+- **Screen Recording**: High-quality screen capture with audio
+- **Microphone Integration**: Record system audio with microphone overlay
+- **Real-time Controls**: Pause, resume, and stop recordings seamlessly
+- **Video Editing**: Built-in editor with trim, volume control, and export options
+- **Project Management**: Organize and manage your recordings
+- **Chrome Extension**: Native browser integration with desktop capture API
+- **Responsive Design**: Works across different screen sizes
 
-There are several ways of editing your application.
+## 🏗️ Architecture
 
-**Use Lovable**
+This project follows a **modular architecture** with clear separation of concerns:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/0f545414-c052-4044-b555-00b5764a9a3a) and start prompting.
+### 📁 Project Structure
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+src/
+├── components/           # Reusable UI components
+│   ├── ui/              # shadcn/ui components
+│   ├── AppHeader.tsx    # Main navigation header
+│   ├── CaptureMode.tsx  # Screen capture interface
+│   ├── VideoEditor.tsx  # Video editing interface
+│   ├── ProjectManager.tsx # Project management
+│   └── ExtensionDetector.tsx # Chrome extension detection
+├── hooks/               # Custom React hooks
+│   ├── useRecording.ts  # Recording state management
+│   └── useRecordingManager.ts # High-level recording logic
+├── services/            # Business logic and APIs
+│   ├── RecordingService.ts # Core recording functionality
+│   ├── ChromeExtensionService.ts # Extension-specific APIs
+│   ├── mediaRecorderManager.ts # MediaRecorder abstraction
+│   └── types.ts         # TypeScript type definitions
+├── pages/               # Application pages
+│   └── Index.tsx        # Main application entry
+└── lib/                 # Utility functions
+    └── utils.ts         # Helper utilities
 ```
 
-**Edit a file directly in GitHub**
+### 🧩 Module Descriptions
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+#### **Services Layer**
+- `RecordingService`: Core recording logic with stream management
+- `ChromeExtensionService`: Chrome extension API integration
+- `MediaRecorderManager`: MediaRecorder lifecycle management
 
-**Use GitHub Codespaces**
+#### **Hooks Layer**
+- `useRecording`: Low-level recording state and controls
+- `useRecordingManager`: High-level recording workflow management
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+#### **Components Layer**
+- Modular UI components with single responsibilities
+- Reusable components following React best practices
+- Clean separation between presentation and logic
 
-## What technologies are used for this project?
+## 🚀 Getting Started
 
-This project is built with:
+### Prerequisites
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Node.js 18+ and npm
+- Chrome browser for extension testing
 
-## How can I deploy this project?
+### Installation
 
-Simply open [Lovable](https://lovable.dev/projects/0f545414-c052-4044-b555-00b5764a9a3a) and click on Share -> Publish.
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd stream-capture-vision
+   ```
 
-## Can I connect a custom domain to my Lovable project?
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-Yes, you can!
+3. **Development mode**
+   ```bash
+   npm run dev
+   ```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+4. **Build for production**
+   ```bash
+   npm run build
+   ```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### 🔧 Chrome Extension Setup
+
+1. **Build the project**
+   ```bash
+   npm run build
+   ```
+
+2. **Load extension in Chrome**
+   - Open `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the `dist` folder
+
+## 🛠️ Development
+
+### Code Style
+
+- **TypeScript**: Strict type checking enabled
+- **ESLint**: Code linting and formatting
+- **Prettier**: Code formatting (if configured)
+- **Modular Design**: Each module has a single responsibility
+
+### Adding New Features
+
+1. **Create service modules** in `src/services/` for business logic
+2. **Create custom hooks** in `src/hooks/` for state management
+3. **Create components** in `src/components/` for UI
+4. **Update types** in `src/services/types.ts` for TypeScript support
+
+### Example: Adding a New Recording Format
+
+```typescript
+// 1. Update types
+export interface RecordingOptions {
+  format: 'mp4' | 'webm' | 'mov'; // Add new format
+  // ... other options
+}
+
+// 2. Update service
+// src/services/RecordingService.ts
+class RecordingService {
+  private getRecordingFormat(format: string): string {
+    switch (format) {
+      case 'mov': return 'video/quicktime';
+      // ... handle new format
+    }
+  }
+}
+
+// 3. Update UI component
+// src/components/RecordingSettings.tsx
+// Add new format option to settings
+```
+
+## 🧪 Testing
+
+```bash
+# Run tests (when test suite is added)
+npm test
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+```
+
+## 📦 Build & Deployment
+
+### Web Application
+```bash
+npm run build
+npm run preview  # Preview production build
+```
+
+### Chrome Extension
+```bash
+npm run build
+# Upload dist/ folder to Chrome Web Store
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+### Development Workflow
+
+1. **Fork the repository**
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Follow the modular architecture**
+   - Keep components small and focused
+   - Use TypeScript interfaces for all data structures
+   - Add proper error handling
+4. **Commit your changes**
+   ```bash
+   git commit -m 'feat: add amazing feature'
+   ```
+5. **Push to the branch**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+6. **Open a Pull Request**
+
+### Coding Standards
+
+- **Modular Design**: Each file should have a single responsibility
+- **TypeScript**: All code must be properly typed
+- **React Hooks**: Use custom hooks for complex state logic
+- **Error Handling**: Implement proper error boundaries and logging
+- **Documentation**: Comment complex logic and update README
+
+### Code Review Checklist
+
+- [ ] Code follows modular architecture principles
+- [ ] TypeScript types are properly defined
+- [ ] Components are tested manually
+- [ ] No console errors in development
+- [ ] Extension functionality works correctly
+- [ ] Responsive design is maintained
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [shadcn/ui](https://ui.shadcn.com/) for the component library
+- [Lucide React](https://lucide.dev/) for the icon set
+- [Tailwind CSS](https://tailwindcss.com/) for styling
+- [Vite](https://vitejs.dev/) for the build system
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](link-to-issues)
+- **Discussions**: [GitHub Discussions](link-to-discussions)
+- **Documentation**: [Project Wiki](link-to-wiki)
+
+---
+
+**Made with ❤️ by the open source community**
+
+*Star ⭐ this repository if you find it helpful!*
