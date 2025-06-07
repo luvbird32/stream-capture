@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Play, Stop, Camera, Mic } from 'lucide-react';
+import { Play, Camera, Mic, Pause, Square } from 'lucide-react';
 
 interface RecordingControlsProps {
   isRecording: boolean;
@@ -69,7 +69,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                   variant="outline"
                   className="border-yellow-500 text-yellow-500 hover:bg-yellow-50"
                 >
-                  <Stop className="w-5 h-5 mr-2" />
+                  <Pause className="w-5 h-5 mr-2" />
                   Pause
                 </Button>
               )}
@@ -79,7 +79,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                 variant="outline"
                 className="border-red-500 text-red-500 hover:bg-red-50"
               >
-                <Stop className="w-5 h-5 mr-2" />
+                <Square className="w-5 h-5 mr-2" />
                 Stop
               </Button>
             </div>

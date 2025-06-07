@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { RecordingService, RecordingOptions, RecordingState } from '../services/RecordingService';
 
@@ -13,9 +12,9 @@ export const useRecording = () => {
   const recordingService = useRef(new RecordingService());
   const intervalRef = useRef<NodeJS.Timeout>();
 
-  const startRecording = useCallback(async (options: RecordingOptions) => {
+  const startRecording = useCallback(async (options: RecordingOptions): Promise<MediaStream> => {
     try {
-      await recordingService.current.startRecording(options);
+      const stream = await recordingService.current.startRecording(options);
       setState(prev => ({ ...prev, isRecording: true, isPaused: false }));
       
       // Start duration timer
@@ -25,6 +24,8 @@ export const useRecording = () => {
           duration: recordingService.current.getDuration()
         }));
       }, 100);
+      
+      return stream;
     } catch (error) {
       console.error('Failed to start recording:', error);
       throw error;

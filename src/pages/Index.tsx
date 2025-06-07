@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { RecordingControls } from '../components/RecordingControls';
 import { RecordingSettings } from '../components/RecordingSettings';
