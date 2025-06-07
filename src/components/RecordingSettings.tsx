@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -56,6 +55,18 @@ export const RecordingSettings: React.FC<RecordingSettingsProps> = ({
               id="include-audio"
               checked={options.includeAudio}
               onCheckedChange={(checked) => updateOption('includeAudio', checked)}
+              disabled={disabled}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="include-microphone" className="text-sm font-medium">
+              Include Microphone
+            </Label>
+            <Switch
+              id="include-microphone"
+              checked={options.includeMicrophone}
+              onCheckedChange={(checked) => updateOption('includeMicrophone', checked)}
               disabled={disabled}
             />
           </div>

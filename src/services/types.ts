@@ -2,6 +2,7 @@
 export interface RecordingOptions {
   includeAudio: boolean;
   includeWebcam: boolean;
+  includeMicrophone: boolean;
   quality: 'low' | 'medium' | 'high';
   frameRate: number;
 }

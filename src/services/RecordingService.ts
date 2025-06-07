@@ -7,6 +7,8 @@ export type { RecordingOptions, RecordingState } from './types';
 export class RecordingService {
   private screenStream: MediaStream | null = null;
   private webcamStream: MediaStream | null = null;
+  private microphoneStream: MediaStream | null = null;
+  private combinedStream: MediaStream | null = null;
   private startTime: number = 0;
   private pauseStartTime: number = 0;
   private totalPausedTime: number = 0;
@@ -35,20 +37,55 @@ export class RecordingService {
               width: { ideal: 640 },
               height: { ideal: 480 }
             },
-            audio: false // Audio already handled by screen capture
+            audio: false // Audio handled separately
           });
           this.webcamStream = webcamStream;
         } catch (webcamError) {
           console.warn('Could not access webcam:', webcamError);
-          // Continue without webcam
         }
+      }
+
+      // Get microphone if requested
+      if (options.includeMicrophone) {
+        try {
+          this.microphoneStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            },
+            video: false
+          });
+          console.log('Microphone access granted');
+        } catch (micError) {
+          console.warn('Could not access microphone:', micError);
+        }
+      }
+
+      // Combine audio streams if we have microphone
+      let recordingStream = screenStream;
+      if (this.microphoneStream) {
+        const audioTracks: MediaStreamTrack[] = [];
+        
+        // Add screen audio if available
+        const screenAudioTracks = screenStream.getAudioTracks();
+        audioTracks.push(...screenAudioTracks);
+        
+        // Add microphone audio
+        const micAudioTracks = this.microphoneStream.getAudioTracks();
+        audioTracks.push(...micAudioTracks);
+        
+        // Create combined stream with video from screen and combined audio
+        const videoTracks = screenStream.getVideoTracks();
+        this.combinedStream = new MediaStream([...videoTracks, ...audioTracks]);
+        recordingStream = this.combinedStream;
       }
 
       this.startTime = Date.now();
       this.totalPausedTime = 0;
 
-      // Record only the screen stream (clean recording without overlay)
-      const mediaRecorder = this.mediaRecorderManager.createRecorder(screenStream);
+      // Record the stream (with or without microphone)
+      const mediaRecorder = this.mediaRecorderManager.createRecorder(recordingStream);
       this.mediaRecorderManager.start();
       
       return { screenStream, webcamStream };
@@ -100,6 +137,13 @@ export class RecordingService {
     if (this.webcamStream) {
       this.webcamStream.getTracks().forEach(track => track.stop());
       this.webcamStream = null;
+    }
+    if (this.microphoneStream) {
+      this.microphoneStream.getTracks().forEach(track => track.stop());
+      this.microphoneStream = null;
+    }
+    if (this.combinedStream) {
+      this.combinedStream = null;
     }
   }
 }

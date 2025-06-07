@@ -35,6 +35,7 @@ const Index = () => {
   const [recordingOptions, setRecordingOptions] = useState<RecordingOptions>({
     includeAudio: true,
     includeWebcam: true,
+    includeMicrophone: false,
     quality: 'medium',
     frameRate: 30,
   });
