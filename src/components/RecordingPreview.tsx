@@ -31,7 +31,7 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
 
   // Handle live stream for recording
   useEffect(() => {
-    console.log('Live stream effect:', { stream, isRecording });
+    console.log('Live stream effect:', { stream: !!stream, isRecording });
     if (liveVideoRef.current && stream && isRecording) {
       liveVideoRef.current.srcObject = stream;
       liveVideoRef.current.play().catch(console.error);
@@ -40,13 +40,16 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
 
   // Handle recorded blob for playback
   useEffect(() => {
-    console.log('Recorded blob effect:', { recordedBlob, isRecording });
+    console.log('Recorded blob effect:', { 
+      hasBlob: !!recordedBlob, 
+      blobSize: recordedBlob?.size,
+      isRecording 
+    });
+    
     if (playbackVideoRef.current && recordedBlob && !isRecording) {
       const url = URL.createObjectURL(recordedBlob);
       console.log('Setting playback video src to:', url);
       playbackVideoRef.current.src = url;
-      
-      // Ensure the video loads and is ready to play
       playbackVideoRef.current.load();
       
       return () => {
@@ -56,12 +59,19 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
     }
   }, [recordedBlob, isRecording]);
 
-  // Determine what to show
-  const showLivePreview = isRecording && stream;
-  const showRecordedVideo = !isRecording && recordedBlob;
+  // Determine what to show - fix the boolean logic
+  const showLivePreview = Boolean(isRecording && stream);
+  const showRecordedVideo = Boolean(!isRecording && recordedBlob);
   const showPlaceholder = !showLivePreview && !showRecordedVideo;
 
-  console.log('Render state:', { showLivePreview, showRecordedVideo, showPlaceholder });
+  console.log('Render state:', { 
+    showLivePreview, 
+    showRecordedVideo, 
+    showPlaceholder,
+    isRecording,
+    hasStream: !!stream,
+    hasBlob: !!recordedBlob
+  });
 
   return (
     <Card className="p-4 bg-card/95 backdrop-blur-sm border-border/50">

@@ -8,11 +8,13 @@ export const usePopupWebcam = () => {
 
   const startPopupWebcam = useCallback(async (webcamStream: MediaStream | null) => {
     if (!webcamStream) {
-      console.warn('No webcam stream available');
+      console.warn('No webcam stream available for popup');
       return false;
     }
 
     try {
+      console.log('Starting popup webcam with stream:', webcamStream);
+      
       // Create popup window
       const popup = window.open(
         '',
@@ -63,6 +65,7 @@ export const usePopupWebcam = () => {
       if (video) {
         video.srcObject = webcamStream;
         popupVideoRef.current = video;
+        console.log('Webcam stream assigned to popup video');
       }
 
       setIsPopupActive(true);
@@ -71,6 +74,7 @@ export const usePopupWebcam = () => {
       // Handle popup close
       const checkClosed = setInterval(() => {
         if (popup.closed) {
+          console.log('Popup window closed');
           clearInterval(checkClosed);
           setIsPopupActive(false);
           setPopupWindow(null);
@@ -86,6 +90,7 @@ export const usePopupWebcam = () => {
   }, []);
 
   const stopPopupWebcam = useCallback(() => {
+    console.log('Stopping popup webcam');
     if (popupWindow && !popupWindow.closed) {
       popupWindow.close();
     }
@@ -99,6 +104,6 @@ export const usePopupWebcam = () => {
     popupWindow,
     startPopupWebcam,
     stopPopupWebcam,
-    isSupported: true, // Popup windows are universally supported
+    isSupported: true,
   };
 };

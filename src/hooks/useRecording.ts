@@ -1,3 +1,4 @@
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { RecordingService, RecordingOptions, RecordingState } from '../services/RecordingService';
 
@@ -19,11 +20,14 @@ export const useRecording = () => {
 
   const startRecording = useCallback(async (options: RecordingOptions): Promise<MediaStream> => {
     try {
+      console.log('Starting recording with options:', options);
       const { screenStream, webcamStream } = await recordingService.current.startRecording(options);
+      
       setState(prev => ({ 
         ...prev, 
         isRecording: true, 
         isPaused: false,
+        recordedBlob: null, // Clear any previous recording
         webcamStream: webcamStream || null
       }));
       
@@ -35,6 +39,7 @@ export const useRecording = () => {
         }));
       }, 100);
       
+      console.log('Recording started successfully');
       return screenStream;
     } catch (error) {
       console.error('Failed to start recording:', error);
@@ -43,29 +48,36 @@ export const useRecording = () => {
   }, []);
 
   const pauseRecording = useCallback(() => {
+    console.log('Pausing recording');
     recordingService.current.pauseRecording();
     setState(prev => ({ ...prev, isPaused: true }));
   }, []);
 
   const resumeRecording = useCallback(() => {
+    console.log('Resuming recording');
     recordingService.current.resumeRecording();
     setState(prev => ({ ...prev, isPaused: false }));
   }, []);
 
   const stopRecording = useCallback(async () => {
     try {
+      console.log('Stopping recording');
       const blob = await recordingService.current.stopRecording();
+      
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      
       setState(prev => ({
         ...prev,
         isRecording: false,
         isPaused: false,
         recordedBlob: blob,
-        duration: 0,
+        duration: recordingService.current.getDuration(), // Keep final duration
         webcamStream: null
       }));
+      
+      console.log('Recording stopped, blob size:', blob.size);
       return blob;
     } catch (error) {
       console.error('Failed to stop recording:', error);
@@ -84,8 +96,8 @@ export const useRecording = () => {
   return {
     ...state,
     startRecording,
-    pauseRecording: recordingService.current.pauseRecording?.bind(recordingService.current),
-    resumeRecording: recordingService.current.resumeRecording?.bind(recordingService.current),
+    pauseRecording,
+    resumeRecording,
     stopRecording,
   };
 };
