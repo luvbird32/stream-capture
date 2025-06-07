@@ -1,3 +1,4 @@
+
 export interface RecordingOptions {
   includeAudio: boolean;
   includeWebcam: boolean;
@@ -28,6 +29,9 @@ export class RecordingService {
   private totalPausedTime: number = 0;
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
+  private animationFrame: number | null = null;
+  private screenVideo: HTMLVideoElement | null = null;
+  private webcamVideo: HTMLVideoElement | null = null;
 
   async startRecording(options: RecordingOptions): Promise<{ screenStream: MediaStream; webcamStream?: MediaStream }> {
     try {
@@ -61,7 +65,7 @@ export class RecordingService {
         }
       }
 
-      // If we have both streams and overlay is enabled, create composite stream
+      // Always create composite stream if we have webcam and overlay is enabled
       let finalStream = screenStream;
       if (webcamStream && options.webcamOverlay?.show) {
         finalStream = this.createCompositeStream(screenStream, webcamStream, options.webcamOverlay);
@@ -71,7 +75,7 @@ export class RecordingService {
       this.startTime = Date.now();
       this.totalPausedTime = 0;
 
-      // Setup MediaRecorder with the final stream (either screen only or composite)
+      // Setup MediaRecorder with the final stream
       this.mediaRecorder = new MediaRecorder(finalStream, {
         mimeType: 'video/webm;codecs=vp9'
       });
@@ -105,49 +109,64 @@ export class RecordingService {
       throw new Error('Could not get canvas context');
     }
 
-    // Create video elements
-    const screenVideo = document.createElement('video');
-    const webcamVideo = document.createElement('video');
+    // Create video elements that will persist throughout recording
+    this.screenVideo = document.createElement('video');
+    this.webcamVideo = document.createElement('video');
     
-    screenVideo.srcObject = screenStream;
-    webcamVideo.srcObject = webcamStream;
+    this.screenVideo.srcObject = screenStream;
+    this.webcamVideo.srcObject = webcamStream;
     
-    screenVideo.play();
-    webcamVideo.play();
+    // Ensure videos are muted to prevent audio feedback
+    this.screenVideo.muted = true;
+    this.webcamVideo.muted = true;
+    
+    // Set video properties for better performance
+    this.screenVideo.playsInline = true;
+    this.webcamVideo.playsInline = true;
+    
+    // Start playing videos
+    this.screenVideo.play().catch(console.error);
+    this.webcamVideo.play().catch(console.error);
 
     // Calculate webcam overlay dimensions and position
     const { width: overlayWidth, height: overlayHeight } = this.getOverlayDimensions(overlayOptions.size);
     const { x: overlayX, y: overlayY } = this.getOverlayPosition(overlayOptions.position, overlayWidth, overlayHeight);
 
-    // Composite frame drawing function
+    // Composite frame drawing function that runs continuously
     const drawFrame = () => {
-      if (!this.ctx || !this.canvas) return;
-
-      // Clear canvas
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-      // Draw screen capture (full size)
-      this.ctx.drawImage(screenVideo, 0, 0, this.canvas.width, this.canvas.height);
-
-      // Draw webcam overlay
-      if (overlayOptions.shape === 'circle') {
-        this.ctx.save();
-        this.ctx.beginPath();
-        this.ctx.arc(overlayX + overlayWidth/2, overlayY + overlayHeight/2, overlayWidth/2, 0, 2 * Math.PI);
-        this.ctx.clip();
-        this.ctx.drawImage(webcamVideo, overlayX, overlayY, overlayWidth, overlayHeight);
-        this.ctx.restore();
-      } else {
-        this.ctx.drawImage(webcamVideo, overlayX, overlayY, overlayWidth, overlayHeight);
+      if (!this.ctx || !this.canvas || !this.screenVideo || !this.webcamVideo) {
+        return;
       }
 
-      requestAnimationFrame(drawFrame);
+      // Only draw if videos are ready
+      if (this.screenVideo.readyState >= 2 && this.webcamVideo.readyState >= 2) {
+        // Clear canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw screen capture (full size)
+        this.ctx.drawImage(this.screenVideo, 0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw webcam overlay
+        if (overlayOptions.shape === 'circle') {
+          this.ctx.save();
+          this.ctx.beginPath();
+          this.ctx.arc(overlayX + overlayWidth/2, overlayY + overlayHeight/2, overlayWidth/2, 0, 2 * Math.PI);
+          this.ctx.clip();
+          this.ctx.drawImage(this.webcamVideo, overlayX, overlayY, overlayWidth, overlayHeight);
+          this.ctx.restore();
+        } else {
+          this.ctx.drawImage(this.webcamVideo, overlayX, overlayY, overlayWidth, overlayHeight);
+        }
+      }
+
+      // Continue the animation loop
+      this.animationFrame = requestAnimationFrame(drawFrame);
     };
 
     // Start drawing frames
     drawFrame();
 
-    // Create stream from canvas
+    // Create stream from canvas at 30 FPS
     const compositeStream = this.canvas.captureStream(30);
     
     // Add audio from screen stream
@@ -221,7 +240,55 @@ export class RecordingService {
     return currentTime - this.startTime - this.totalPausedTime;
   }
 
+  private getOverlayDimensions(size: 'small' | 'medium' | 'large') {
+    switch (size) {
+      case 'small': return { width: 240, height: 180 };
+      case 'medium': return { width: 320, height: 240 };
+      case 'large': return { width: 400, height: 300 };
+      default: return { width: 320, height: 240 };
+    }
+  }
+
+  private getOverlayPosition(
+    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right',
+    width: number,
+    height: number
+  ) {
+    const margin = 20;
+    switch (position) {
+      case 'top-left': return { x: margin, y: margin };
+      case 'top-right': return { x: 1920 - width - margin, y: margin };
+      case 'bottom-left': return { x: margin, y: 1080 - height - margin };
+      case 'bottom-right': return { x: 1920 - width - margin, y: 1080 - height - margin };
+      default: return { x: 1920 - width - margin, y: 1080 - height - margin };
+    }
+  }
+
+  getWebcamStream(): MediaStream | null {
+    return this.webcamStream;
+  }
+
   private cleanup(): void {
+    // Stop animation frame
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
+    }
+
+    // Clean up video elements
+    if (this.screenVideo) {
+      this.screenVideo.pause();
+      this.screenVideo.srcObject = null;
+      this.screenVideo = null;
+    }
+
+    if (this.webcamVideo) {
+      this.webcamVideo.pause();
+      this.webcamVideo.srcObject = null;
+      this.webcamVideo = null;
+    }
+
+    // Stop streams
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
@@ -230,6 +297,8 @@ export class RecordingService {
       this.webcamStream.getTracks().forEach(track => track.stop());
       this.webcamStream = null;
     }
+
+    // Clean up canvas
     this.mediaRecorder = null;
     this.recordedChunks = [];
     this.canvas = null;
