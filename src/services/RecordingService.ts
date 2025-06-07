@@ -1,6 +1,6 @@
-
 import { RecordingOptions } from './types';
 import { MediaRecorderManager } from './mediaRecorderManager';
+import { ChromeExtensionService } from './ChromeExtensionService';
 
 export type { RecordingOptions, RecordingState } from './types';
 
@@ -15,15 +15,23 @@ export class RecordingService {
 
   async startRecording(options: RecordingOptions): Promise<{ screenStream: MediaStream }> {
     try {
-      // Get screen capture
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          frameRate: options.frameRate,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
-        audio: options.includeAudio
-      });
+      let screenStream: MediaStream;
+
+      // Use Chrome extension API if available, otherwise fall back to regular getDisplayMedia
+      if (ChromeExtensionService.isExtension()) {
+        console.log('Using Chrome extension desktop capture API');
+        screenStream = await ChromeExtensionService.getDesktopStream();
+      } else {
+        console.log('Using standard getDisplayMedia API');
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            frameRate: options.frameRate,
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: options.includeAudio
+        });
+      }
 
       this.screenStream = screenStream;
 

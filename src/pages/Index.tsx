@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { AppHeader } from '../components/AppHeader';
 import { CaptureMode } from '../components/CaptureMode';
 import { ProjectManager } from '../components/ProjectManager';
 import { VideoEditor } from '../components/VideoEditor';
+import { ExtensionDetector } from '../components/ExtensionDetector';
 import { useRecordingManager } from '../hooks/useRecordingManager';
 
 type AppMode = 'capture' | 'projects' | 'editing';
@@ -47,59 +47,61 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <AppHeader
-          currentMode={currentMode}
-          projectCount={projects.length}
-          onModeChange={handleModeChange}
-        />
-
-        {/* Capture Mode */}
-        {currentMode === 'capture' && (
-          <CaptureMode
-            stream={stream}
-            isRecording={recording.isRecording}
-            isPaused={recording.isPaused}
-            duration={recording.duration}
-            recordedBlob={recording.recordedBlob}
-            recordingOptions={recordingOptions}
-            onStartRecording={handleStartRecording}
-            onPauseRecording={recording.pauseRecording}
-            onResumeRecording={recording.resumeRecording}
-            onStopRecording={() => {
-              handleStopRecording();
-              setCurrentMode('projects');
-            }}
-            onOptionsChange={setRecordingOptions}
+    <ExtensionDetector>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          <AppHeader
+            currentMode={currentMode}
+            projectCount={projects.length}
+            onModeChange={handleModeChange}
           />
-        )}
 
-        {/* Projects Mode */}
-        {currentMode === 'projects' && (
-          <div className="max-w-6xl mx-auto">
-            <ProjectManager
-              projects={projects}
-              onOpenEditor={handleOpenEditorAndSwitchMode}
-              onPlayProject={handlePlayProject}
-              onDeleteProject={handleDeleteProject}
-              onExportProject={handleExportProject}
+          {/* Capture Mode */}
+          {currentMode === 'capture' && (
+            <CaptureMode
+              stream={stream}
+              isRecording={recording.isRecording}
+              isPaused={recording.isPaused}
+              duration={recording.duration}
+              recordedBlob={recording.recordedBlob}
+              recordingOptions={recordingOptions}
+              onStartRecording={handleStartRecording}
+              onPauseRecording={recording.pauseRecording}
+              onResumeRecording={recording.resumeRecording}
+              onStopRecording={() => {
+                handleStopRecording();
+                setCurrentMode('projects');
+              }}
+              onOptionsChange={setRecordingOptions}
             />
-          </div>
-        )}
+          )}
 
-        {/* Editing Mode */}
-        {currentMode === 'editing' && editingProject && (
-          <div className="max-w-6xl mx-auto">
-            <VideoEditor
-              videoBlob={editingProject.blob}
-              onExport={handleExportVideoAndSwitchMode}
-              onClose={handleCloseEditorAndSwitchMode}
-            />
-          </div>
-        )}
+          {/* Projects Mode */}
+          {currentMode === 'projects' && (
+            <div className="max-w-6xl mx-auto">
+              <ProjectManager
+                projects={projects}
+                onOpenEditor={handleOpenEditorAndSwitchMode}
+                onPlayProject={handlePlayProject}
+                onDeleteProject={handleDeleteProject}
+                onExportProject={handleExportProject}
+              />
+            </div>
+          )}
+
+          {/* Editing Mode */}
+          {currentMode === 'editing' && editingProject && (
+            <div className="max-w-6xl mx-auto">
+              <VideoEditor
+                videoBlob={editingProject.blob}
+                onExport={handleExportVideoAndSwitchMode}
+                onClose={handleCloseEditorAndSwitchMode}
+              />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </ExtensionDetector>
   );
 };
 
