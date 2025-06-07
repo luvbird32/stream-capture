@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Slider } from '@/components/ui/slider';
+import { Scissors } from 'lucide-react';
 
 interface VideoTrimControlsProps {
   trimStart: number;
@@ -24,9 +25,12 @@ export const VideoTrimControls: React.FC<VideoTrimControlsProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Trim Start</label>
+    <div className="grid grid-cols-2 gap-6">
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Scissors className="w-4 h-4 text-primary" />
+          <label className="text-sm font-medium text-foreground">Start Time</label>
+        </div>
         <Slider
           value={[trimStart]}
           onValueChange={onTrimStartChange}
@@ -34,12 +38,15 @@ export const VideoTrimControls: React.FC<VideoTrimControlsProps> = ({
           step={0.1}
           className="w-full"
         />
-        <span className="text-xs text-muted-foreground">
+        <div className="text-xs font-mono text-muted-foreground bg-background/50 px-2 py-1 rounded border w-fit">
           {formatTime(trimStart)}
-        </span>
+        </div>
       </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Trim End</label>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Scissors className="w-4 h-4 text-primary" />
+          <label className="text-sm font-medium text-foreground">End Time</label>
+        </div>
         <Slider
           value={[trimEnd]}
           onValueChange={onTrimEndChange}
@@ -47,9 +54,9 @@ export const VideoTrimControls: React.FC<VideoTrimControlsProps> = ({
           step={0.1}
           className="w-full"
         />
-        <span className="text-xs text-muted-foreground">
+        <div className="text-xs font-mono text-muted-foreground bg-background/50 px-2 py-1 rounded border w-fit">
           {formatTime(trimEnd)}
-        </span>
+        </div>
       </div>
     </div>
   );

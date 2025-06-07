@@ -29,28 +29,32 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <Button
           size="sm"
           variant="outline"
           onClick={onPlayPause}
+          className="gap-2"
         >
           {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+          {isPlaying ? 'Pause' : 'Play'}
         </Button>
         <Button
           size="sm"
           variant="outline"
           onClick={onReset}
+          className="gap-2"
         >
           <RotateCcw className="w-4 h-4" />
+          Reset
         </Button>
-        <span className="text-sm font-mono">
+        <div className="text-sm font-mono text-muted-foreground bg-background/50 px-2 py-1 rounded border">
           {formatTime(currentTime)} / {formatTime(duration)}
-        </span>
+        </div>
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Timeline</label>
+        <label className="text-sm font-medium text-foreground">Timeline</label>
         <Slider
           value={[duration > 0 ? (currentTime / duration) * 100 : 0]}
           onValueChange={onSeek}

@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Scissors, Download } from 'lucide-react';
+import { Scissors, Download, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { VideoPlayerControls } from './VideoPlayerControls';
 import { VideoTrimControls } from './VideoTrimControls';
@@ -97,7 +97,6 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({
 
   const handleExport = async () => {
     try {
-      // Determine file extension based on blob type
       const fileExtension = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
       const filename = `edited-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${fileExtension}`;
       onExport(videoBlob, filename);
@@ -116,22 +115,23 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="bg-card/95 backdrop-blur-sm border-border/50">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Scissors className="w-5 h-5" />
+    <div className="max-w-6xl mx-auto space-y-6">
+      <Card className="bg-card/95 backdrop-blur-sm border-border/50 shadow-lg">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center justify-between text-lg font-semibold">
+            <div className="flex items-center gap-2">
+              <Scissors className="w-5 h-5 text-primary" />
               Video Editor
-            </span>
-            <Button variant="outline" onClick={onClose}>
-              Close Editor
+            </div>
+            <Button variant="outline" size="sm" onClick={onClose} className="gap-2">
+              <X className="w-4 h-4" />
+              Close
             </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Video Preview */}
-          <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+          <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border/20">
             <video
               ref={videoRef}
               className="w-full h-full object-cover"
@@ -142,35 +142,48 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({
             />
           </div>
 
-          {/* Player Controls */}
-          <VideoPlayerControls
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-            duration={duration}
-            onPlayPause={handlePlayPause}
-            onReset={handleReset}
-            onSeek={handleSeek}
-          />
+          {/* Control Sections */}
+          <div className="space-y-6">
+            {/* Player Controls */}
+            <div className="bg-muted/30 rounded-lg p-4 border border-border/10">
+              <VideoPlayerControls
+                isPlaying={isPlaying}
+                currentTime={currentTime}
+                duration={duration}
+                onPlayPause={handlePlayPause}
+                onReset={handleReset}
+                onSeek={handleSeek}
+              />
+            </div>
 
-          {/* Trim Controls */}
-          <VideoTrimControls
-            trimStart={trimStart}
-            trimEnd={trimEnd}
-            duration={duration}
-            onTrimStartChange={handleTrimStartChange}
-            onTrimEndChange={handleTrimEndChange}
-          />
+            {/* Trim Controls */}
+            <div className="bg-muted/30 rounded-lg p-4 border border-border/10">
+              <div className="mb-3">
+                <h3 className="text-sm font-medium text-foreground">Trim Video</h3>
+                <p className="text-xs text-muted-foreground">Set start and end points for your video</p>
+              </div>
+              <VideoTrimControls
+                trimStart={trimStart}
+                trimEnd={trimEnd}
+                duration={duration}
+                onTrimStartChange={handleTrimStartChange}
+                onTrimEndChange={handleTrimEndChange}
+              />
+            </div>
 
-          {/* Volume Control */}
-          <VideoVolumeControl
-            volume={volume}
-            onVolumeChange={handleVolumeChange}
-          />
+            {/* Volume Control */}
+            <div className="bg-muted/30 rounded-lg p-4 border border-border/10">
+              <VideoVolumeControl
+                volume={volume}
+                onVolumeChange={handleVolumeChange}
+              />
+            </div>
+          </div>
 
           {/* Export Controls */}
-          <div className="flex gap-3 pt-4 border-t">
-            <Button onClick={handleExport} className="flex-1">
-              <Download className="w-4 h-4 mr-2" />
+          <div className="pt-4 border-t border-border/20">
+            <Button onClick={handleExport} className="w-full gap-2 font-medium">
+              <Download className="w-4 h-4" />
               Export Video
             </Button>
           </div>
