@@ -1,12 +1,17 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { RecordingService, RecordingOptions, RecordingState } from '../services/RecordingService';
 
+interface ExtendedRecordingState extends RecordingState {
+  webcamStream: MediaStream | null;
+}
+
 export const useRecording = () => {
-  const [state, setState] = useState<RecordingState>({
+  const [state, setState] = useState<ExtendedRecordingState>({
     isRecording: false,
     isPaused: false,
     duration: 0,
     recordedBlob: null,
+    webcamStream: null,
   });
 
   const recordingService = useRef(new RecordingService());
@@ -14,8 +19,13 @@ export const useRecording = () => {
 
   const startRecording = useCallback(async (options: RecordingOptions): Promise<MediaStream> => {
     try {
-      const stream = await recordingService.current.startRecording(options);
-      setState(prev => ({ ...prev, isRecording: true, isPaused: false }));
+      const { screenStream, webcamStream } = await recordingService.current.startRecording(options);
+      setState(prev => ({ 
+        ...prev, 
+        isRecording: true, 
+        isPaused: false,
+        webcamStream: webcamStream || null
+      }));
       
       // Start duration timer
       intervalRef.current = setInterval(() => {
@@ -25,7 +35,7 @@ export const useRecording = () => {
         }));
       }, 100);
       
-      return stream;
+      return screenStream;
     } catch (error) {
       console.error('Failed to start recording:', error);
       throw error;
@@ -53,7 +63,8 @@ export const useRecording = () => {
         isRecording: false,
         isPaused: false,
         recordedBlob: blob,
-        duration: 0
+        duration: 0,
+        webcamStream: null
       }));
       return blob;
     } catch (error) {
@@ -73,8 +84,8 @@ export const useRecording = () => {
   return {
     ...state,
     startRecording,
-    pauseRecording,
-    resumeRecording,
+    pauseRecording: recordingService.current.pauseRecording?.bind(recordingService.current),
+    resumeRecording: recordingService.current.resumeRecording?.bind(recordingService.current),
     stopRecording,
   };
 };

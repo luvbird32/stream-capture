@@ -25,12 +25,37 @@ const Index = () => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   
+  // Webcam overlay state
+  const [showWebcamOverlay, setShowWebcamOverlay] = useState(true);
+  const [webcamOverlayPosition, setWebcamOverlayPosition] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
+  const [webcamOverlaySize, setWebcamOverlaySize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [webcamOverlayShape, setWebcamOverlayShape] = useState<'circle' | 'rounded'>('circle');
+  
   const [recordingOptions, setRecordingOptions] = useState<RecordingOptions>({
     includeAudio: true,
-    includeWebcam: false,
+    includeWebcam: true,
     quality: 'medium',
     frameRate: 30,
+    webcamOverlay: {
+      position: webcamOverlayPosition,
+      size: webcamOverlaySize,
+      shape: webcamOverlayShape,
+      show: showWebcamOverlay,
+    },
   });
+
+  // Update recording options when overlay settings change
+  React.useEffect(() => {
+    setRecordingOptions(prev => ({
+      ...prev,
+      webcamOverlay: {
+        position: webcamOverlayPosition,
+        size: webcamOverlaySize,
+        shape: webcamOverlayShape,
+        show: showWebcamOverlay,
+      },
+    }));
+  }, [showWebcamOverlay, webcamOverlayPosition, webcamOverlaySize, webcamOverlayShape]);
 
   const handleStartRecording = async () => {
     try {
@@ -107,7 +132,7 @@ const Index = () => {
             Screen Recorder
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Professional screen recording with webcam for content creators
+            Professional screen recording with webcam overlay for content creators
           </p>
         </div>
 
@@ -117,8 +142,14 @@ const Index = () => {
             {/* Preview */}
             <RecordingPreview
               stream={stream}
+              webcamStream={recording.webcamStream}
               isRecording={recording.isRecording}
               recordedBlob={recording.recordedBlob}
+              showWebcamOverlay={showWebcamOverlay && recordingOptions.includeWebcam}
+              webcamOverlayPosition={webcamOverlayPosition}
+              webcamOverlaySize={webcamOverlaySize}
+              webcamOverlayShape={webcamOverlayShape}
+              onToggleWebcamOverlay={() => setShowWebcamOverlay(!showWebcamOverlay)}
             />
             
             {/* Controls */}
@@ -140,6 +171,14 @@ const Index = () => {
               options={recordingOptions}
               onChange={setRecordingOptions}
               disabled={recording.isRecording}
+              showWebcamOverlay={showWebcamOverlay}
+              webcamOverlayPosition={webcamOverlayPosition}
+              webcamOverlaySize={webcamOverlaySize}
+              webcamOverlayShape={webcamOverlayShape}
+              onToggleWebcamOverlay={setShowWebcamOverlay}
+              onWebcamOverlayPositionChange={setWebcamOverlayPosition}
+              onWebcamOverlaySizeChange={setWebcamOverlaySize}
+              onWebcamOverlayShapeChange={setWebcamOverlayShape}
             />
           </div>
         </div>

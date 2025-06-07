@@ -1,17 +1,30 @@
 
 import React, { useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
+import { WebcamOverlay } from './WebcamOverlay';
 
 interface RecordingPreviewProps {
   stream: MediaStream | null;
+  webcamStream: MediaStream | null;
   isRecording: boolean;
   recordedBlob: Blob | null;
+  showWebcamOverlay: boolean;
+  webcamOverlayPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  webcamOverlaySize: 'small' | 'medium' | 'large';
+  webcamOverlayShape: 'circle' | 'rounded';
+  onToggleWebcamOverlay: () => void;
 }
 
 export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
   stream,
+  webcamStream,
   isRecording,
   recordedBlob,
+  showWebcamOverlay,
+  webcamOverlayPosition,
+  webcamOverlaySize,
+  webcamOverlayShape,
+  onToggleWebcamOverlay,
 }) => {
   const liveVideoRef = useRef<HTMLVideoElement>(null);
   const playbackVideoRef = useRef<HTMLVideoElement>(null);
@@ -35,12 +48,24 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
     <Card className="p-4 bg-card/95 backdrop-blur-sm border-border/50">
       <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
         {isRecording && stream ? (
-          <video
-            ref={liveVideoRef}
-            autoPlay
-            muted
-            className="w-full h-full object-cover"
-          />
+          <>
+            <video
+              ref={liveVideoRef}
+              autoPlay
+              muted
+              className="w-full h-full object-cover"
+            />
+            
+            {/* Webcam Overlay */}
+            <WebcamOverlay
+              webcamStream={webcamStream}
+              isVisible={showWebcamOverlay}
+              position={webcamOverlayPosition}
+              size={webcamOverlaySize}
+              shape={webcamOverlayShape}
+              onToggleVisibility={onToggleWebcamOverlay}
+            />
+          </>
         ) : recordedBlob ? (
           <video
             ref={playbackVideoRef}
