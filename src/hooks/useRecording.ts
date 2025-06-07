@@ -61,13 +61,19 @@ export const useRecording = () => {
 
   const stopRecording = useCallback(async () => {
     try {
-      console.log('Stopping recording');
-      const blob = await recordingService.current.stopRecording();
+      console.log('Stopping recording - current state:', state.isRecording);
       
+      // Clear the interval first
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = undefined;
       }
       
+      // Stop the recording service
+      const blob = await recordingService.current.stopRecording();
+      console.log('Recording service stopped, blob received:', blob.size);
+      
+      // Update state
       setState(prev => ({
         ...prev,
         isRecording: false,
@@ -77,13 +83,28 @@ export const useRecording = () => {
         webcamStream: null
       }));
       
-      console.log('Recording stopped, blob size:', blob.size);
+      console.log('Recording stopped successfully, blob size:', blob.size);
       return blob;
     } catch (error) {
       console.error('Failed to stop recording:', error);
+      
+      // Ensure we reset state even if there's an error
+      setState(prev => ({
+        ...prev,
+        isRecording: false,
+        isPaused: false,
+        webcamStream: null
+      }));
+      
+      // Clear interval on error too
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = undefined;
+      }
+      
       throw error;
     }
-  }, []);
+  }, [state.isRecording]);
 
   useEffect(() => {
     return () => {

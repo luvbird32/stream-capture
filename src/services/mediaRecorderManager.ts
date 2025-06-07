@@ -11,45 +11,84 @@ export class MediaRecorderManager {
     });
 
     this.mediaRecorder.ondataavailable = (event) => {
+      console.log('MediaRecorder data available, size:', event.data.size);
       if (event.data.size > 0) {
         this.recordedChunks.push(event.data);
       }
+    };
+
+    this.mediaRecorder.onerror = (event) => {
+      console.error('MediaRecorder error:', event);
     };
 
     return this.mediaRecorder;
   }
 
   start(): void {
-    if (this.mediaRecorder) {
+    if (this.mediaRecorder && this.mediaRecorder.state === 'inactive') {
+      console.log('Starting MediaRecorder');
       this.mediaRecorder.start(1000); // Collect data every second
     }
   }
 
   pause(): void {
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      console.log('Pausing MediaRecorder');
       this.mediaRecorder.pause();
     }
   }
 
   resume(): void {
     if (this.mediaRecorder && this.mediaRecorder.state === 'paused') {
+      console.log('Resuming MediaRecorder');
       this.mediaRecorder.resume();
     }
   }
 
   stop(): Promise<Blob> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (!this.mediaRecorder) {
-        throw new Error('No active recording');
+        console.error('No MediaRecorder to stop');
+        reject(new Error('No active recording'));
+        return;
       }
 
-      this.mediaRecorder.onstop = () => {
+      console.log('Stopping MediaRecorder, current state:', this.mediaRecorder.state);
+
+      if (this.mediaRecorder.state === 'inactive') {
+        console.warn('MediaRecorder already inactive');
         const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+        this.cleanup();
+        resolve(blob);
+        return;
+      }
+
+      const handleStop = () => {
+        console.log('MediaRecorder stopped, chunks:', this.recordedChunks.length);
+        const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+        console.log('Created blob with size:', blob.size);
         this.cleanup();
         resolve(blob);
       };
 
-      this.mediaRecorder.stop();
+      const handleError = (error: Event) => {
+        console.error('Error stopping MediaRecorder:', error);
+        this.cleanup();
+        reject(new Error('Failed to stop recording'));
+      };
+
+      // Set up event handlers
+      this.mediaRecorder.onstop = handleStop;
+      this.mediaRecorder.onerror = handleError;
+
+      // Stop the recorder
+      try {
+        this.mediaRecorder.stop();
+      } catch (error) {
+        console.error('Error calling stop():', error);
+        this.cleanup();
+        reject(error);
+      }
     });
   }
 
@@ -58,6 +97,13 @@ export class MediaRecorderManager {
   }
 
   private cleanup(): void {
+    console.log('Cleaning up MediaRecorderManager');
+    if (this.mediaRecorder) {
+      // Remove event handlers to prevent memory leaks
+      this.mediaRecorder.ondataavailable = null;
+      this.mediaRecorder.onstop = null;
+      this.mediaRecorder.onerror = null;
+    }
     this.mediaRecorder = null;
     this.recordedChunks = [];
   }
