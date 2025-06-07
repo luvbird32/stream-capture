@@ -4,7 +4,7 @@ import { RecordingControls } from '../components/RecordingControls';
 import { RecordingSettings } from '../components/RecordingSettings';
 import { RecordingPreview } from '../components/RecordingPreview';
 import { RecordingManager } from '../components/RecordingManager';
-import { PictureInPictureWebcam } from '../components/PictureInPictureWebcam';
+import { PopupWebcam } from '../components/PopupWebcam';
 import { useRecording } from '../hooks/useRecording';
 import { RecordingOptions } from '../services/RecordingService';
 import { useToast } from '@/hooks/use-toast';
@@ -162,6 +162,13 @@ const Index = () => {
               onWebcamOverlayPositionChange={setWebcamOverlayPosition}
               onWebcamOverlaySizeChange={setWebcamOverlaySize}
               onWebcamOverlayShapeChange={setWebcamOverlayShape}
+            />
+
+            {/* Popup Webcam */}
+            <PopupWebcam
+              webcamStream={recording.webcamStream}
+              isRecording={recording.isRecording}
+              onPopupStatusChange={() => {}} // Handle if needed
             />
           </div>
         </div>
