@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { VideoPlayerControls } from './VideoPlayerControls';
 import { VideoTrimControls } from './VideoTrimControls';
 import { VideoVolumeControl } from './VideoVolumeControl';
+import { SecurityUtils } from '../lib/security';
 
 interface VideoEditorProps {
   videoBlob: Blob;
@@ -31,12 +31,23 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({
 
   useEffect(() => {
     if (videoRef.current && videoBlob) {
+      // Validate blob size before processing
+      if (!SecurityUtils.validateBlobSize(videoBlob)) {
+        toast({
+          title: "Video Too Large",
+          description: "The video file exceeds the maximum allowed size for editing.",
+          variant: "destructive",
+        });
+        onClose();
+        return;
+      }
+      
       const url = URL.createObjectURL(videoBlob);
       videoRef.current.src = url;
       
       return () => URL.revokeObjectURL(url);
     }
-  }, [videoBlob]);
+  }, [videoBlob, toast, onClose]);
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
@@ -97,8 +108,10 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({
 
   const handleExport = async () => {
     try {
+      // Generate secure filename
       const fileExtension = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
-      const filename = `edited-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${fileExtension}`;
+      const filename = SecurityUtils.generateSecureFilename('edited-recording', fileExtension);
+      
       onExport(videoBlob, filename);
       
       toast({

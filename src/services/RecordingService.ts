@@ -2,6 +2,7 @@
 import { RecordingOptions } from './types';
 import { MediaRecorderManager } from './mediaRecorderManager';
 import { ChromeExtensionService } from './ChromeExtensionService';
+import { SecurityUtils } from '../lib/security';
 
 export type { RecordingOptions, RecordingState } from './types';
 
@@ -14,6 +15,7 @@ export class RecordingService {
   private totalPausedTime: number = 0;
   private mediaRecorderManager = new MediaRecorderManager();
   private isRecording = false;
+  private cleanupTimeouts: NodeJS.Timeout[] = [];
 
   async startRecording(options: RecordingOptions): Promise<{ screenStream: MediaStream }> {
     try {
@@ -87,6 +89,14 @@ export class RecordingService {
       const mediaRecorder = this.mediaRecorderManager.createRecorder(recordingStream);
       this.mediaRecorderManager.start();
       
+      // Set up automatic cleanup timeout (safety measure)
+      const cleanupTimeout = setTimeout(() => {
+        console.warn('Recording cleanup timeout reached, forcing stop');
+        this.forceCleanup();
+      }, 4 * 60 * 60 * 1000); // 4 hours max recording time
+      
+      this.cleanupTimeouts.push(cleanupTimeout);
+      
       return { screenStream };
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -121,6 +131,13 @@ export class RecordingService {
         }
 
         const blob = await this.mediaRecorderManager.stop();
+        
+        // Validate blob size for security
+        if (!SecurityUtils.validateBlobSize(blob)) {
+          console.warn('Recording blob exceeds maximum allowed size');
+          // Still resolve but log the security event
+        }
+        
         this.cleanup();
         resolve(blob);
       } catch (error) {
@@ -137,9 +154,18 @@ export class RecordingService {
     return currentTime - this.startTime - this.totalPausedTime;
   }
 
+  private forceCleanup(): void {
+    console.log('Force cleaning up RecordingService due to timeout');
+    this.cleanup();
+  }
+
   private cleanup(): void {
     console.log('Cleaning up RecordingService');
     this.isRecording = false;
+    
+    // Clear all cleanup timeouts
+    this.cleanupTimeouts.forEach(timeout => clearTimeout(timeout));
+    this.cleanupTimeouts = [];
     
     // Stop streams with error handling
     if (this.screenStream) {
