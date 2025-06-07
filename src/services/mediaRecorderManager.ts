@@ -2,9 +2,11 @@
 export class MediaRecorderManager {
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
+  private isCleaningUp = false;
 
   createRecorder(stream: MediaStream): MediaRecorder {
     this.recordedChunks = [];
+    this.isCleaningUp = false;
     
     // Try MP4 format first, fallback to WebM if not supported
     let mimeType = 'video/mp4';
@@ -19,7 +21,7 @@ export class MediaRecorderManager {
 
     this.mediaRecorder.ondataavailable = (event) => {
       console.log('MediaRecorder data available, size:', event.data.size);
-      if (event.data.size > 0) {
+      if (event.data.size > 0 && !this.isCleaningUp) {
         this.recordedChunks.push(event.data);
       }
     };
@@ -60,9 +62,11 @@ export class MediaRecorderManager {
         return;
       }
 
-      console.log('Stopping MediaRecorder, current state:', this.mediaRecorder.state);
+      const currentState = this.mediaRecorder.state;
+      console.log('Stopping MediaRecorder, current state:', currentState);
 
-      if (this.mediaRecorder.state === 'inactive') {
+      // If already inactive, resolve immediately with existing chunks
+      if (currentState === 'inactive') {
         console.warn('MediaRecorder already inactive');
         const mimeType = this.mediaRecorder.mimeType.includes('mp4') ? 'video/mp4' : 'video/webm';
         const blob = new Blob(this.recordedChunks, { type: mimeType });
@@ -71,6 +75,7 @@ export class MediaRecorderManager {
         return;
       }
 
+      // Set up one-time event handlers
       const handleStop = () => {
         console.log('MediaRecorder stopped, chunks:', this.recordedChunks.length);
         const mimeType = this.mediaRecorder!.mimeType.includes('mp4') ? 'video/mp4' : 'video/webm';
@@ -86,14 +91,30 @@ export class MediaRecorderManager {
         reject(new Error('Failed to stop recording'));
       };
 
-      // Set up event handlers
-      this.mediaRecorder.onstop = handleStop;
-      this.mediaRecorder.onerror = handleError;
+      // Add timeout to prevent hanging
+      const timeout = setTimeout(() => {
+        console.warn('MediaRecorder stop timeout, forcing cleanup');
+        this.cleanup();
+        reject(new Error('Recording stop timeout'));
+      }, 5000);
 
-      // Stop the recorder
+      // Set up event handlers
+      this.mediaRecorder.onstop = () => {
+        clearTimeout(timeout);
+        handleStop();
+      };
+      this.mediaRecorder.onerror = (error) => {
+        clearTimeout(timeout);
+        handleError(error);
+      };
+
+      // Attempt to stop the recorder
       try {
-        this.mediaRecorder.stop();
+        if (this.mediaRecorder.state !== 'inactive') {
+          this.mediaRecorder.stop();
+        }
       } catch (error) {
+        clearTimeout(timeout);
         console.error('Error calling stop():', error);
         this.cleanup();
         reject(error);
@@ -107,6 +128,8 @@ export class MediaRecorderManager {
 
   private cleanup(): void {
     console.log('Cleaning up MediaRecorderManager');
+    this.isCleaningUp = true;
+    
     if (this.mediaRecorder) {
       // Remove event handlers to prevent memory leaks
       this.mediaRecorder.ondataavailable = null;

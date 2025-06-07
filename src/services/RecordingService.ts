@@ -1,3 +1,4 @@
+
 import { RecordingOptions } from './types';
 import { MediaRecorderManager } from './mediaRecorderManager';
 import { ChromeExtensionService } from './ChromeExtensionService';
@@ -12,9 +13,15 @@ export class RecordingService {
   private pauseStartTime: number = 0;
   private totalPausedTime: number = 0;
   private mediaRecorderManager = new MediaRecorderManager();
+  private isRecording = false;
 
   async startRecording(options: RecordingOptions): Promise<{ screenStream: MediaStream }> {
     try {
+      // Prevent multiple simultaneous recordings
+      if (this.isRecording) {
+        throw new Error('Recording already in progress');
+      }
+
       let screenStream: MediaStream;
 
       // Use Chrome extension API if available, otherwise fall back to regular getDisplayMedia
@@ -49,6 +56,7 @@ export class RecordingService {
           console.log('Microphone access granted');
         } catch (micError) {
           console.warn('Could not access microphone:', micError);
+          // Continue without microphone instead of failing completely
         }
       }
 
@@ -73,6 +81,7 @@ export class RecordingService {
 
       this.startTime = Date.now();
       this.totalPausedTime = 0;
+      this.isRecording = true;
 
       // Record the stream (with or without microphone)
       const mediaRecorder = this.mediaRecorderManager.createRecorder(recordingStream);
@@ -81,49 +90,84 @@ export class RecordingService {
       return { screenStream };
     } catch (error) {
       console.error('Error starting recording:', error);
+      this.cleanup();
       throw error;
     }
   }
 
   pauseRecording(): void {
+    if (!this.isRecording) {
+      console.warn('No active recording to pause');
+      return;
+    }
     this.mediaRecorderManager.pause();
     this.pauseStartTime = Date.now();
   }
 
   resumeRecording(): void {
+    if (!this.isRecording) {
+      console.warn('No active recording to resume');
+      return;
+    }
     this.mediaRecorderManager.resume();
     this.totalPausedTime += Date.now() - this.pauseStartTime;
   }
 
   stopRecording(): Promise<Blob> {
-    return new Promise(async (resolve) => {
+    return new Promise(async (resolve, reject) => {
       try {
+        if (!this.isRecording) {
+          throw new Error('No active recording to stop');
+        }
+
         const blob = await this.mediaRecorderManager.stop();
         this.cleanup();
         resolve(blob);
       } catch (error) {
+        console.error('Error stopping recording:', error);
         this.cleanup();
-        throw error;
+        reject(error);
       }
     });
   }
 
   getDuration(): number {
-    if (!this.startTime) return 0;
+    if (!this.startTime || !this.isRecording) return 0;
     const currentTime = Date.now();
     return currentTime - this.startTime - this.totalPausedTime;
   }
 
   private cleanup(): void {
-    // Stop streams
+    console.log('Cleaning up RecordingService');
+    this.isRecording = false;
+    
+    // Stop streams with error handling
     if (this.screenStream) {
-      this.screenStream.getTracks().forEach(track => track.stop());
+      try {
+        this.screenStream.getTracks().forEach(track => {
+          if (track.readyState === 'live') {
+            track.stop();
+          }
+        });
+      } catch (error) {
+        console.warn('Error stopping screen stream:', error);
+      }
       this.screenStream = null;
     }
+    
     if (this.microphoneStream) {
-      this.microphoneStream.getTracks().forEach(track => track.stop());
+      try {
+        this.microphoneStream.getTracks().forEach(track => {
+          if (track.readyState === 'live') {
+            track.stop();
+          }
+        });
+      } catch (error) {
+        console.warn('Error stopping microphone stream:', error);
+      }
       this.microphoneStream = null;
     }
+    
     if (this.combinedStream) {
       this.combinedStream = null;
     }

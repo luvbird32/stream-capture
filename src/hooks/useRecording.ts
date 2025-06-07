@@ -13,9 +13,14 @@ export const useRecording = () => {
   const recordingService = useRef(new RecordingService());
   const intervalRef = useRef<NodeJS.Timeout>();
   const streamRef = useRef<MediaStream | null>(null);
+  const isStoppingRef = useRef(false);
 
   const startRecording = useCallback(async (options: RecordingOptions): Promise<MediaStream> => {
     try {
+      if (state.isRecording) {
+        throw new Error('Recording already in progress');
+      }
+
       console.log('Starting recording with options:', options);
       const { screenStream } = await recordingService.current.startRecording(options);
       
@@ -26,7 +31,9 @@ export const useRecording = () => {
       screenStream.getVideoTracks().forEach(track => {
         track.addEventListener('ended', () => {
           console.log('Screen sharing ended, stopping recording automatically');
-          stopRecording().catch(console.error);
+          if (!isStoppingRef.current) {
+            stopRecording().catch(console.error);
+          }
         });
       });
       
@@ -49,24 +56,44 @@ export const useRecording = () => {
       return screenStream;
     } catch (error) {
       console.error('Failed to start recording:', error);
+      // Reset state on error
+      setState(prev => ({
+        ...prev,
+        isRecording: false,
+        isPaused: false,
+      }));
       throw error;
     }
-  }, []);
+  }, [state.isRecording]);
 
   const pauseRecording = useCallback(() => {
+    if (!state.isRecording || state.isPaused) {
+      console.warn('Cannot pause: not recording or already paused');
+      return;
+    }
     console.log('Pausing recording');
     recordingService.current.pauseRecording();
     setState(prev => ({ ...prev, isPaused: true }));
-  }, []);
+  }, [state.isRecording, state.isPaused]);
 
   const resumeRecording = useCallback(() => {
+    if (!state.isRecording || !state.isPaused) {
+      console.warn('Cannot resume: not recording or not paused');
+      return;
+    }
     console.log('Resuming recording');
     recordingService.current.resumeRecording();
     setState(prev => ({ ...prev, isPaused: false }));
-  }, []);
+  }, [state.isRecording, state.isPaused]);
 
   const stopRecording = useCallback(async () => {
     try {
+      if (!state.isRecording || isStoppingRef.current) {
+        console.warn('No recording to stop or already stopping');
+        return null;
+      }
+
+      isStoppingRef.current = true;
       console.log('Stopping recording - current state:', state.isRecording);
       
       // Clear the interval first
@@ -113,13 +140,20 @@ export const useRecording = () => {
       streamRef.current = null;
       
       throw error;
+    } finally {
+      isStoppingRef.current = false;
     }
   }, [state.isRecording]);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+      }
+      // Force cleanup if component unmounts during recording
+      if (state.isRecording) {
+        recordingService.current.stopRecording().catch(console.error);
       }
     };
   }, []);
