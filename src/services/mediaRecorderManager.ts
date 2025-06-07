@@ -6,8 +6,15 @@ export class MediaRecorderManager {
   createRecorder(stream: MediaStream): MediaRecorder {
     this.recordedChunks = [];
     
+    // Try MP4 format first, fallback to WebM if not supported
+    let mimeType = 'video/mp4';
+    if (!MediaRecorder.isTypeSupported('video/mp4')) {
+      mimeType = 'video/webm;codecs=vp9';
+      console.warn('MP4 not supported, falling back to WebM');
+    }
+
     this.mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'video/webm;codecs=vp9'
+      mimeType: mimeType
     });
 
     this.mediaRecorder.ondataavailable = (event) => {
@@ -57,7 +64,8 @@ export class MediaRecorderManager {
 
       if (this.mediaRecorder.state === 'inactive') {
         console.warn('MediaRecorder already inactive');
-        const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+        const mimeType = this.mediaRecorder.mimeType.includes('mp4') ? 'video/mp4' : 'video/webm';
+        const blob = new Blob(this.recordedChunks, { type: mimeType });
         this.cleanup();
         resolve(blob);
         return;
@@ -65,8 +73,9 @@ export class MediaRecorderManager {
 
       const handleStop = () => {
         console.log('MediaRecorder stopped, chunks:', this.recordedChunks.length);
-        const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
-        console.log('Created blob with size:', blob.size);
+        const mimeType = this.mediaRecorder!.mimeType.includes('mp4') ? 'video/mp4' : 'video/webm';
+        const blob = new Blob(this.recordedChunks, { type: mimeType });
+        console.log('Created blob with size:', blob.size, 'and type:', mimeType);
         this.cleanup();
         resolve(blob);
       };

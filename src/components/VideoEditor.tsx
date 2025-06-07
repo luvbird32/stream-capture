@@ -102,9 +102,9 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({
 
   const handleExport = async () => {
     try {
-      // For now, we'll export the original video
-      // In a full implementation, you'd apply the edits here
-      const filename = `edited-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+      // Determine file extension based on blob type
+      const fileExtension = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
+      const filename = `edited-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${fileExtension}`;
       onExport(videoBlob, filename);
       
       toast({
