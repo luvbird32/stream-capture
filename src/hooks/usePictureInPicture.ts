@@ -3,7 +3,7 @@ import { useState, useRef, useCallback } from 'react';
 
 export const usePictureInPicture = () => {
   const [isPipActive, setIsPipActive] = useState(false);
-  const [pipWindow, setPipWindow] = useState<Window | null>(null);
+  const [pipWindow, setPipWindow] = useState<PictureInPictureWindow | null>(null);
   const pipVideoRef = useRef<HTMLVideoElement>(null);
 
   const startPictureInPicture = useCallback(async (webcamStream: MediaStream | null) => {
