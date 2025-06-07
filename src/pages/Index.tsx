@@ -1,263 +1,78 @@
 
 import React, { useState } from 'react';
-import { RecordingControls } from '../components/RecordingControls';
-import { RecordingSettings } from '../components/RecordingSettings';
-import { RecordingPreview } from '../components/RecordingPreview';
-import { ProjectManager, RecordingProject } from '../components/ProjectManager';
+import { AppHeader } from '../components/AppHeader';
+import { CaptureMode } from '../components/CaptureMode';
+import { ProjectManager } from '../components/ProjectManager';
 import { VideoEditor } from '../components/VideoEditor';
-import { useRecording } from '../hooks/useRecording';
-import { RecordingOptions } from '../services/RecordingService';
-import { useToast } from '@/hooks/use-toast';
+import { useRecordingManager } from '../hooks/useRecordingManager';
 
 type AppMode = 'capture' | 'projects' | 'editing';
 
 const Index = () => {
-  const { toast } = useToast();
-  const recording = useRecording();
-  
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [projects, setProjects] = useState<RecordingProject[]>([]);
   const [currentMode, setCurrentMode] = useState<AppMode>('capture');
-  const [editingProject, setEditingProject] = useState<RecordingProject | null>(null);
-  
-  const [recordingOptions, setRecordingOptions] = useState<RecordingOptions>({
-    includeAudio: true,
-    includeWebcam: false,
-    includeMicrophone: false,
-    quality: 'medium',
-    frameRate: 30,
-  });
+  const {
+    stream,
+    projects,
+    editingProject,
+    recordingOptions,
+    recording,
+    handleStartRecording,
+    handleStopRecording,
+    handleOpenEditor,
+    handleCloseEditor,
+    handleExportVideo,
+    handlePlayProject,
+    handleDeleteProject,
+    handleExportProject,
+    setRecordingOptions,
+  } = useRecordingManager();
 
-  const handleStartRecording = async () => {
-    try {
-      const recordingStream = await recording.startRecording(recordingOptions);
-      setStream(recordingStream);
-      setCurrentMode('capture');
-      toast({
-        title: "Recording Started",
-        description: "Your screen recording has begun.",
-      });
-    } catch (error) {
-      toast({
-        title: "Recording Failed",
-        description: "Unable to start recording. Please check permissions.",
-        variant: "destructive",
-      });
-    }
+  const handleModeChange = (mode: AppMode) => {
+    setCurrentMode(mode);
   };
 
-  const handleStopRecording = async () => {
-    try {
-      const blob = await recording.stopRecording();
-      setStream(null);
-      
-      // Create new recording project
-      const newProject: RecordingProject = {
-        id: Date.now().toString(),
-        name: `Recording ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
-        createdAt: new Date(),
-        duration: recording.duration,
-        size: blob.size,
-        blob,
-        status: 'captured',
-      };
-      
-      setProjects(prev => [newProject, ...prev]);
-      setCurrentMode('projects');
-      
-      toast({
-        title: "Recording Captured",
-        description: "Your recording has been saved. Ready for editing!",
-      });
-    } catch (error) {
-      toast({
-        title: "Capture Failed",
-        description: "Unable to save recording.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleOpenEditor = (project: RecordingProject) => {
-    setEditingProject(project);
+  const handleOpenEditorAndSwitchMode = (project: any) => {
+    handleOpenEditor(project);
     setCurrentMode('editing');
-    
-    // Update project status
-    setProjects(prev => 
-      prev.map(p => 
-        p.id === project.id 
-          ? { ...p, status: 'editing' as const }
-          : p
-      )
-    );
   };
 
-  const handleCloseEditor = () => {
-    setEditingProject(null);
+  const handleCloseEditorAndSwitchMode = () => {
+    handleCloseEditor();
     setCurrentMode('projects');
   };
 
-  const handleExportVideo = (editedBlob: Blob, filename: string) => {
-    if (!editingProject) return;
-    
-    // Update project with export info
-    setProjects(prev => 
-      prev.map(p => 
-        p.id === editingProject.id 
-          ? { 
-              ...p, 
-              status: 'exported' as const,
-              exportedBlob: editedBlob,
-              exportedFilename: filename
-            }
-          : p
-      )
-    );
-    
-    // Auto-download the exported video
-    const url = URL.createObjectURL(editedBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
+  const handleExportVideoAndSwitchMode = (editedBlob: Blob, filename: string) => {
+    handleExportVideo(editedBlob, filename);
     setCurrentMode('projects');
-    setEditingProject(null);
-  };
-
-  const handlePlayProject = (project: RecordingProject) => {
-    // Create a temporary preview window
-    const url = URL.createObjectURL(project.blob);
-    const video = document.createElement('video');
-    video.src = url;
-    video.controls = true;
-    video.autoplay = true;
-    video.style.width = '100%';
-    video.style.height = '100%';
-    
-    const popup = window.open('', '_blank', 'width=800,height=600');
-    if (popup) {
-      popup.document.title = project.name;
-      popup.document.body.style.margin = '0';
-      popup.document.body.style.backgroundColor = '#000';
-      popup.document.body.appendChild(video);
-      
-      popup.addEventListener('beforeunload', () => {
-        URL.revokeObjectURL(url);
-      });
-    }
-  };
-
-  const handleDeleteProject = (id: string) => {
-    setProjects(prev => prev.filter(p => p.id !== id));
-    toast({
-      title: "Project Deleted",
-      description: "Recording project has been removed.",
-    });
-  };
-
-  const handleExportProject = (project: RecordingProject) => {
-    if (project.exportedBlob && project.exportedFilename) {
-      const url = URL.createObjectURL(project.exportedBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = project.exportedFilename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast({
-        title: "Download Started",
-        description: "Your exported video is being downloaded.",
-      });
-    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-4">
-            Screen Recorder Studio
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Professional screen recording with full editing capabilities: Capture → Save → Edit → Export
-          </p>
-          
-          {/* Mode Navigation */}
-          <div className="flex justify-center gap-4 mt-6">
-            <button
-              onClick={() => setCurrentMode('capture')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                currentMode === 'capture' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              }`}
-            >
-              📹 Capture
-            </button>
-            <button
-              onClick={() => setCurrentMode('projects')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                currentMode === 'projects' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              }`}
-            >
-              🎬 Projects ({projects.length})
-            </button>
-          </div>
-        </div>
+        <AppHeader
+          currentMode={currentMode}
+          projectCount={projects.length}
+          onModeChange={handleModeChange}
+        />
 
         {/* Capture Mode */}
         {currentMode === 'capture' && (
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-            {/* Main Recording Area */}
-            <div className="xl:col-span-3 space-y-6">
-              {/* Preview */}
-              <div className="w-full">
-                <RecordingPreview
-                  stream={stream}
-                  isRecording={recording.isRecording}
-                  recordedBlob={recording.recordedBlob}
-                />
-              </div>
-              
-              {/* Controls */}
-              <RecordingControls
-                isRecording={recording.isRecording}
-                isPaused={recording.isPaused}
-                duration={recording.duration}
-                onStart={handleStartRecording}
-                onPause={recording.pauseRecording}
-                onResume={recording.resumeRecording}
-                onStop={handleStopRecording}
-              />
-            </div>
-
-            {/* Settings Sidebar */}
-            <div className="xl:col-span-1 space-y-6">
-              {/* Recording Settings */}
-              <RecordingSettings
-                options={recordingOptions}
-                onChange={setRecordingOptions}
-                disabled={recording.isRecording}
-                showWebcamOverlay={false}
-                webcamOverlayPosition="bottom-right"
-                webcamOverlaySize="medium"
-                webcamOverlayShape="circle"
-                onToggleWebcamOverlay={() => {}}
-                onWebcamOverlayPositionChange={() => {}}
-                onWebcamOverlaySizeChange={() => {}}
-                onWebcamOverlayShapeChange={() => {}}
-              />
-            </div>
-          </div>
+          <CaptureMode
+            stream={stream}
+            isRecording={recording.isRecording}
+            isPaused={recording.isPaused}
+            duration={recording.duration}
+            recordedBlob={recording.recordedBlob}
+            recordingOptions={recordingOptions}
+            onStartRecording={handleStartRecording}
+            onPauseRecording={recording.pauseRecording}
+            onResumeRecording={recording.resumeRecording}
+            onStopRecording={() => {
+              handleStopRecording();
+              setCurrentMode('projects');
+            }}
+            onOptionsChange={setRecordingOptions}
+          />
         )}
 
         {/* Projects Mode */}
@@ -265,7 +80,7 @@ const Index = () => {
           <div className="max-w-6xl mx-auto">
             <ProjectManager
               projects={projects}
-              onOpenEditor={handleOpenEditor}
+              onOpenEditor={handleOpenEditorAndSwitchMode}
               onPlayProject={handlePlayProject}
               onDeleteProject={handleDeleteProject}
               onExportProject={handleExportProject}
@@ -278,8 +93,8 @@ const Index = () => {
           <div className="max-w-6xl mx-auto">
             <VideoEditor
               videoBlob={editingProject.blob}
-              onExport={handleExportVideo}
-              onClose={handleCloseEditor}
+              onExport={handleExportVideoAndSwitchMode}
+              onClose={handleCloseEditorAndSwitchMode}
             />
           </div>
         )}
