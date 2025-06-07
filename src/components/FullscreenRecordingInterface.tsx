@@ -39,6 +39,7 @@ export const FullscreenRecordingInterface: React.FC<FullscreenRecordingInterface
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isStartingRecording, setIsStartingRecording] = useState(false);
 
   useEffect(() => {
     const enterFullscreen = async () => {
@@ -55,17 +56,52 @@ export const FullscreenRecordingInterface: React.FC<FullscreenRecordingInterface
     enterFullscreen();
 
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-      if (!document.fullscreenElement) {
+      const isCurrentlyFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(isCurrentlyFullscreen);
+      
+      // Only exit if we're not in the middle of starting a recording
+      if (!isCurrentlyFullscreen && !isStartingRecording && !isRecording) {
         onExit();
       }
     };
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent ESC from exiting fullscreen during recording
+      if (e.key === 'Escape' && (isRecording || isStartingRecording)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('keydown', handleKeyDown, true);
+    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [onExit]);
+  }, [onExit, isStartingRecording, isRecording]);
+
+  const handleStartRecording = async () => {
+    setIsStartingRecording(true);
+    try {
+      await onStartRecording();
+      
+      // Re-enter fullscreen if it was lost during screen selection
+      if (!document.fullscreenElement && containerRef.current) {
+        try {
+          await containerRef.current.requestFullscreen();
+          setIsFullscreen(true);
+        } catch (error) {
+          console.warn('Could not re-enter fullscreen after recording start:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+    } finally {
+      setIsStartingRecording(false);
+    }
+  };
 
   const handleExitFullscreen = () => {
     if (document.fullscreenElement) {
@@ -100,17 +136,19 @@ export const FullscreenRecordingInterface: React.FC<FullscreenRecordingInterface
               <p className="text-lg mb-8">Click start to select your screen and begin recording</p>
               <div className="flex gap-4 justify-center">
                 <Button
-                  onClick={onStartRecording}
+                  onClick={handleStartRecording}
+                  disabled={isStartingRecording}
                   size="lg"
                   className="bg-red-500 hover:bg-red-600 text-white font-semibold px-8"
                 >
-                  Start Recording
+                  {isStartingRecording ? 'Starting...' : 'Start Recording'}
                 </Button>
                 <Button
                   onClick={handleExitFullscreen}
                   size="lg"
                   variant="outline"
                   className="border-white text-white hover:bg-white hover:text-black"
+                  disabled={isStartingRecording}
                 >
                   Cancel
                 </Button>
@@ -178,6 +216,11 @@ export const FullscreenRecordingInterface: React.FC<FullscreenRecordingInterface
             <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 z-30">
               <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
               {isPaused ? 'PAUSED' : 'RECORDING'}
+            </div>
+
+            {/* Instructions for user - top center */}
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-lg text-sm z-30">
+              You can now switch between windows and tabs while recording
             </div>
           </div>
         )}
