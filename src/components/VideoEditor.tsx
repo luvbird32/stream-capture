@@ -21,7 +21,6 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({
 }) => {
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
