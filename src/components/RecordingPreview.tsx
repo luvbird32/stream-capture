@@ -29,25 +29,44 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
   const liveVideoRef = useRef<HTMLVideoElement>(null);
   const playbackVideoRef = useRef<HTMLVideoElement>(null);
 
+  // Handle live stream for recording
   useEffect(() => {
+    console.log('Live stream effect:', { stream, isRecording });
     if (liveVideoRef.current && stream && isRecording) {
       liveVideoRef.current.srcObject = stream;
+      liveVideoRef.current.play().catch(console.error);
     }
   }, [stream, isRecording]);
 
+  // Handle recorded blob for playback
   useEffect(() => {
+    console.log('Recorded blob effect:', { recordedBlob, isRecording });
     if (playbackVideoRef.current && recordedBlob && !isRecording) {
       const url = URL.createObjectURL(recordedBlob);
+      console.log('Setting playback video src to:', url);
       playbackVideoRef.current.src = url;
       
-      return () => URL.revokeObjectURL(url);
+      // Ensure the video loads and is ready to play
+      playbackVideoRef.current.load();
+      
+      return () => {
+        console.log('Cleaning up blob URL:', url);
+        URL.revokeObjectURL(url);
+      };
     }
   }, [recordedBlob, isRecording]);
+
+  // Determine what to show
+  const showLivePreview = isRecording && stream;
+  const showRecordedVideo = !isRecording && recordedBlob;
+  const showPlaceholder = !showLivePreview && !showRecordedVideo;
+
+  console.log('Render state:', { showLivePreview, showRecordedVideo, showPlaceholder });
 
   return (
     <Card className="p-4 bg-card/95 backdrop-blur-sm border-border/50">
       <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
-        {isRecording && stream ? (
+        {showLivePreview && (
           <>
             <video
               ref={liveVideoRef}
@@ -66,13 +85,20 @@ export const RecordingPreview: React.FC<RecordingPreviewProps> = ({
               onToggleVisibility={onToggleWebcamOverlay}
             />
           </>
-        ) : recordedBlob ? (
+        )}
+
+        {showRecordedVideo && (
           <video
             ref={playbackVideoRef}
             controls
             className="w-full h-full object-cover"
+            onLoadedMetadata={() => console.log('Video metadata loaded')}
+            onCanPlay={() => console.log('Video can play')}
+            onError={(e) => console.error('Video error:', e)}
           />
-        ) : (
+        )}
+
+        {showPlaceholder && (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <div className="text-6xl mb-4">🎥</div>
