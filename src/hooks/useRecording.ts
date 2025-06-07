@@ -12,11 +12,23 @@ export const useRecording = () => {
 
   const recordingService = useRef(new RecordingService());
   const intervalRef = useRef<NodeJS.Timeout>();
+  const streamRef = useRef<MediaStream | null>(null);
 
   const startRecording = useCallback(async (options: RecordingOptions): Promise<MediaStream> => {
     try {
       console.log('Starting recording with options:', options);
       const { screenStream } = await recordingService.current.startRecording(options);
+      
+      // Store the stream reference
+      streamRef.current = screenStream;
+      
+      // Listen for when the screen share ends
+      screenStream.getVideoTracks().forEach(track => {
+        track.addEventListener('ended', () => {
+          console.log('Screen sharing ended, stopping recording automatically');
+          stopRecording().catch(console.error);
+        });
+      });
       
       setState(prev => ({ 
         ...prev, 
@@ -63,6 +75,9 @@ export const useRecording = () => {
         intervalRef.current = undefined;
       }
       
+      // Clear stream reference
+      streamRef.current = null;
+      
       // Stop the recording service
       const blob = await recordingService.current.stopRecording();
       console.log('Recording service stopped, blob received:', blob.size);
@@ -93,6 +108,9 @@ export const useRecording = () => {
         clearInterval(intervalRef.current);
         intervalRef.current = undefined;
       }
+      
+      // Clear stream reference
+      streamRef.current = null;
       
       throw error;
     }
